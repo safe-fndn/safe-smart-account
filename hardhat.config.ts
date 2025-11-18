@@ -20,7 +20,7 @@ const argv = yargs(hideBin(process.argv))
     .version(false)
     .parseSync();
 
-dotenv.config();
+dotenv.config({ quiet: true });
 const {
     NODE_URL,
     INFURA_KEY,
