@@ -4,6 +4,7 @@ import { expect } from "chai";
 import hre from "hardhat";
 import crypto from "crypto";
 import { AddressZero } from "@ethersproject/constants";
+import { p256 } from "@noble/curves/nist.js";
 import { getSafeTemplate, getSafe } from "../utils/setup";
 import {
     safeSignTypedData,
@@ -509,6 +510,147 @@ describe("Safe", () => {
             const signatures = buildSignatureBytes([selfSignature]);
 
             await expect(safe["checkSignatures(address,bytes32,bytes)"](user1.address, txHash, signatures)).to.be.revertedWith("GS025");
+        });
+
+        function isSecp256r1Enabled() {
+            return (hre.network.config as { enableRip7212?: boolean }).enableRip7212 === true;
+        }
+
+        it("should revert when RIP-7212/RIP-7951 is not enabled", async function () {
+            if (isSecp256r1Enabled()) {
+                this.skip();
+            }
+
+            await setupTests();
+            const { secretKey, publicKey } = p256.keygen();
+            const publicKeyCoords = p256.Point.fromBytes(publicKey);
+            const address = hre.ethers.getAddress(
+                hre.ethers.dataSlice(
+                    hre.ethers.solidityPackedKeccak256(["uint256", "uint256"], [publicKeyCoords.x, publicKeyCoords.y]),
+                    12,
+                ),
+            );
+            const safe = await getSafe({
+                owners: [address],
+                threshold: 1,
+            });
+
+            const dataHash = hre.ethers.id("Fusaka!");
+            const signature = p256.sign(hre.ethers.getBytes(dataHash), secretKey, { prehash: false });
+            const signatures = hre.ethers.solidityPacked(
+                ["bytes32", "uint256", "uint8", "bytes32", "uint256", "uint256"],
+                [
+                    signature.subarray(0, 32), // the signature `r` value
+                    65, // the offset in the signature bytes to the rest of the data
+                    2, // v == 2, indicating a secp256r1 signature
+                    signature.subarray(32, 64), // the actual signature `s` value
+                    publicKeyCoords.x, // the signer's public key `x` coordinate
+                    publicKeyCoords.y, // the signer's public key `y` coordinate
+                ],
+            );
+
+            await expect(safe["checkSignatures(address,bytes32,bytes)"](hre.ethers.ZeroAddress, dataHash, signatures)).to.be.revertedWith(
+                "GS028",
+            );
+        });
+
+        it("should allow RIP-7212/RIP-7951 signatures using the secp256r1 curve [@secp256r1]", async function () {
+            if (!isSecp256r1Enabled()) {
+                this.skip();
+            }
+
+            await setupTests();
+            const { secretKey, publicKey } = p256.keygen();
+            const publicKeyCoords = p256.Point.fromBytes(publicKey);
+            const address = hre.ethers.getAddress(
+                hre.ethers.dataSlice(
+                    hre.ethers.solidityPackedKeccak256(["uint256", "uint256"], [publicKeyCoords.x, publicKeyCoords.y]),
+                    12,
+                ),
+            );
+            const safe = await getSafe({
+                owners: [address],
+                threshold: 1,
+            });
+
+            const dataHash = hre.ethers.id("Fusaka!");
+            const signature = p256.sign(hre.ethers.getBytes(dataHash), secretKey, { prehash: false });
+            const signatures = hre.ethers.solidityPacked(
+                ["bytes32", "uint256", "uint8", "bytes32", "uint256", "uint256"],
+                [
+                    signature.subarray(0, 32), // the signature `r` value
+                    65, // the offset in the signature bytes to the rest of the data
+                    2, // v == 2, indicating a secp256r1 signature
+                    signature.subarray(32, 64), // the actual signature `s` value
+                    publicKeyCoords.x, // the signer's public key `x` coordinate
+                    publicKeyCoords.y, // the signer's public key `y` coordinate
+                ],
+            );
+
+            await safe["checkSignatures(address,bytes32,bytes)"](hre.ethers.ZeroAddress, dataHash, signatures);
+        });
+
+        it("should revert on incorrectly encoded RIP-7212/RIP-7951 signatures", async function () {
+            await setupTests();
+            const safe = await getSafe({
+                owners: [`0x${"42".repeat(20)}`],
+                threshold: 1,
+            });
+            const dataHash = hre.ethers.id("Fusaka!");
+
+            const offsetInStaticPart = hre.ethers.solidityPacked(
+                ["bytes32", "uint256", "uint8", "bytes32", "uint256", "uint256"],
+                [hre.ethers.ZeroHash, 12, 2, hre.ethers.ZeroHash, 0, 0],
+            );
+            await expect(
+                safe["checkSignatures(address,bytes32,bytes)"](hre.ethers.ZeroAddress, dataHash, offsetInStaticPart),
+            ).to.be.revertedWith("GS021");
+
+            const missingSignatureData = hre.ethers.solidityPacked(
+                ["bytes32", "uint256", "uint8", "bytes32"],
+                [hre.ethers.ZeroHash, 65, 2, hre.ethers.ZeroHash],
+            );
+            await expect(
+                safe["checkSignatures(address,bytes32,bytes)"](hre.ethers.ZeroAddress, dataHash, missingSignatureData),
+            ).to.be.revertedWith("GS027");
+        });
+
+        it("should revert on with invalid RIP-7212/RIP-7951 signatures [@secp256r1]", async function () {
+            if (!isSecp256r1Enabled()) {
+                this.skip();
+            }
+
+            await setupTests();
+            const { secretKey, publicKey } = p256.keygen();
+            const publicKeyCoords = p256.Point.fromBytes(publicKey);
+            const address = hre.ethers.getAddress(
+                hre.ethers.dataSlice(
+                    hre.ethers.solidityPackedKeccak256(["uint256", "uint256"], [publicKeyCoords.x, publicKeyCoords.y]),
+                    12,
+                ),
+            );
+            const safe = await getSafe({
+                owners: [address],
+                threshold: 1,
+            });
+
+            const dataHash = hre.ethers.id("Fusaka!");
+            const signature = p256.sign(hre.ethers.getBytes(dataHash), secretKey, { prehash: false });
+            const signatures = hre.ethers.solidityPacked(
+                ["bytes32", "uint256", "uint8", "bytes32", "uint256", "uint256"],
+                [
+                    signature.subarray(0, 32), // the signature `r` value
+                    65, // the offset in the signature bytes to the rest of the data
+                    2, // v == 2, indicating a secp256r1 signature
+                    hre.ethers.id("invalid"), // the wrong signature `s` value, making it invalid
+                    publicKeyCoords.x, // the signer's public key `x` coordinate
+                    publicKeyCoords.y, // the signer's public key `y` coordinate
+                ],
+            );
+
+            await expect(safe["checkSignatures(address,bytes32,bytes)"](hre.ethers.ZeroAddress, dataHash, signatures)).to.be.revertedWith(
+                "GS028",
+            );
         });
     });
 

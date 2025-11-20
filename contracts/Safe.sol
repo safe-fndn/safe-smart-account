@@ -349,6 +349,55 @@ contract Safe is
                 currentOwner = address(uint160(uint256(r)));
                 // Hashes are automatically approved by the `executor` or when they have been pre-approved via a separate transaction.
                 if (executor != currentOwner && approvedHashes[currentOwner][dataHash] == 0) revertWithError("GS025");
+            } else if (v == 2) {
+                // if `v` is 2, then we have a `secp256r1` signature that we verify using the RIP-7212/EIP-7951
+                // precompile. In this case, `r` is the signature `r` value and `s` is a data pointer to the dynamic
+                // part of the signature bytes containing the the signature `s` value followed by the public key
+                // coordinates `qx` and `qy`. Unlike with contract signatures the length of the dynamic part is not
+                // encoded in the `signatures` bytes as it is always 96. Just like for `secp256k1` EOA signatures, we do
+                // not enforce that `s` is on the lower half of the curve (i.e. the signature is malleable).
+
+                // Check that the additional signature data required for `secp256r1` verification is correctly encoded.
+                // That is, the data pointer `s` must be past the "static part" of the signature (just like for contract
+                // signatures), and additionally there must be at least 96 bytes of data containing the public key
+                // coordinates and the actual signature `s` value.
+                if (uint256(s) < requiredSignatures.mul(65)) revertWithError("GS021");
+                if (uint256(s).add(96) > signatures.length) revertWithError("GS027");
+
+                // Call the RIP-7212/EIP-7951 precompile, we resort to assembly shenanigans here as the precompile is
+                // not supported in the Solidity version we use.
+                bool success;
+                /* solhint-disable no-inline-assembly */
+                /// @solidity memory-safe-assembly
+                assembly {
+                    // Get the free memory pointer
+                    let ptr := mload(0x40)
+
+                    // Compute the memory offset of the dynamic part of the signature containing the additional
+                    // `secp256r1` signature data. Note that we need to offset the signatures by an additional 32 bytes
+                    // to account for the length that is stored at the start of the `signatures` bytes memory.
+                    let sig := add(signatures, add(s, 0x20))
+
+                    // Now, prepare the call to the precompile: address(0x100).call(h, r, s, qx, qy)
+                    // We write the return data of the call to the scratch space at memory address 0.
+                    mstore(ptr, dataHash)
+                    mstore(add(ptr, 0x20), r)
+                    mstore(add(ptr, 0x40), mload(sig))
+                    mstore(add(ptr, 0x60), mload(add(sig, 0x20)))
+                    mstore(add(ptr, 0x80), mload(add(sig, 0x40)))
+                    success := staticcall(gas(), 0x100, ptr, 0xa0, 0x00, 0x20)
+
+                    // The precompile is defined to return exactly `uint256(1)` in case the signature is valid, check
+                    // the return data is exactly what we expect. Note that in case the precompile is not supported,
+                    // the `returndatasize` will be 0 making `success` false.
+                    success := and(success, and(eq(returndatasize(), 0x20), eq(mload(0x00), 1)))
+
+                    // Just like for regular `secp256k1` (with a **k**) EOAs, we define the address to be the last 20
+                    // bytes of the hash of the public key coordinates.
+                    currentOwner := and(keccak256(add(sig, 0x20), 0x40), 0xffffffffffffffffffffffffffffffffffffffff)
+                }
+                /* solhint-enable no-inline-assembly */
+                if (!success) revertWithError("GS028");
             } else if (v > 30) {
                 // If `v > 30` then default `v` (27, 28) has been adjusted to encode an `eth_sign` signature.
                 // To support `eth_sign` and similar we adjust `v` and hash the `dataHash` with the EIP-191 message prefix before applying `ecrecover`.
