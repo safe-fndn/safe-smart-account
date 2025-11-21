@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.7.0 <0.9.0;
 
-import {EIP7702Delegation} from "../common/EIP7702Delegation.sol";
+import {EIP7702} from "../common/EIP7702.sol";
 import {SelfAuthorized} from "../common/SelfAuthorized.sol";
 import {IOwnerManager} from "../interfaces/IOwnerManager.sol";
 
@@ -13,7 +13,7 @@ import {IOwnerManager} from "../interfaces/IOwnerManager.sol";
  * @author Stefan George - @Georgi87
  * @author Richard Meissner - @rmeissner
  */
-abstract contract OwnerManager is EIP7702Delegation, SelfAuthorized, IOwnerManager {
+abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     /**
      * @dev The sentinel owner value in the {owners} linked list.
      *      `SENTINEL_OWNERS` is used to traverse {owners}, such that:

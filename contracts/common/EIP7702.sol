@@ -2,11 +2,11 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 /**
- * @title EIP-7702 Delegation
+ * @title EIP-7702
  * @notice Base contract for detecting when code is run in an EIP-7702 delegated context.
  * @author Nicholas Rodrigues Lordello - @nlordell
  */
-abstract contract EIP7702Delegation {
+abstract contract EIP7702 {
     /**
      * @dev Returns whether the current contract is executing in the context of an EOA with a 7702 delegation. Note that
      *      just because this method returns `true` does **not** mean that the EOA delegated to this contract. In fact,
