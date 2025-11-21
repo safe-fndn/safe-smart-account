@@ -3,7 +3,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {ISafe} from "./../interfaces/ISafe.sol";
 import {ISignatureValidator} from "./../interfaces/ISignatureValidator.sol";
-import {Enum} from "./../libraries/Enum.sol";
+import {Enum} from "./../interfaces/Enum.sol";
 import {TokenCallbackHandler} from "./TokenCallbackHandler.sol";
 
 /**

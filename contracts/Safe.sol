@@ -13,7 +13,7 @@ import {StorageAccessible} from "./common/StorageAccessible.sol";
 import {SafeMath} from "./external/SafeMath.sol";
 import {ISafe} from "./interfaces/ISafe.sol";
 import {ISignatureValidator, ISignatureValidatorConstants} from "./interfaces/ISignatureValidator.sol";
-import {Enum} from "./libraries/Enum.sol";
+import {Enum} from "./interfaces/Enum.sol";
 
 /**
  * @title Safe

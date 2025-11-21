@@ -113,6 +113,25 @@ export const getSafeTemplateWithSingleton = async (singleton: Contract | Safe, s
     return singleton.attach(template) as Safe | SafeL2;
 };
 
+export const getEip7702SafeTemplate = async (authority: Signer) => {
+    const singleton = await getSafeSingleton();
+    return getEip7702SafeTemplateWithSingleton(singleton, authority);
+};
+
+export const getEip7702SafeTemplateWithSingleton = async (singleton: Safe | SafeL2 | Contract, authority: Signer) => {
+    // Note that this process is UNSAFE and only used for testing. If used in the real world, your Safe setup can be
+    // front-run by anyone and created with different parameters than you intended.
+    const authorization = await authority.authorize({
+        address: await singleton.getAddress(),
+        // Since we are using the authority to set the delegation on itself, we need to sign it for the subsequent
+        // nonce, as the current one is used for the transaction execution.
+        nonce: (await hre.ethers.provider.getTransactionCount(authority)) + 1,
+    });
+    const delegation = await authority.sendTransaction({ to: authority, authorizationList: [authorization] });
+    await delegation.wait();
+    return singleton.attach(await authority.getAddress()) as Safe | SafeL2;
+};
+
 export const getSafe = async (safe: GetSafeParameters) => {
     const {
         singleton = await getSafeSingleton(),
@@ -128,6 +147,26 @@ export const getSafe = async (safe: GetSafeParameters) => {
     const template = await getSafeTemplateWithSingleton(singleton, saltNumber);
     await logGas(
         `Setup Safe with ${owners.length} owner(s)${fallbackHandler && fallbackHandler !== AddressZero ? " and fallback handler" : ""}`,
+        template.setup(owners, threshold, to, data, fallbackHandler, AddressZero, 0, AddressZero),
+        !logGasUsage,
+    );
+    return template;
+};
+
+export const getEip7702Safe = async (authority: Signer, safe: GetSafeParameters) => {
+    const {
+        singleton = await getSafeSingleton(),
+        owners,
+        threshold = owners.length,
+        to = AddressZero,
+        data = "0x",
+        fallbackHandler = AddressZero,
+        logGasUsage = false,
+    } = safe;
+
+    const template = await getEip7702SafeTemplateWithSingleton(singleton, authority);
+    await logGas(
+        `Setup EIP-7702 delegated Safe with ${owners.length} owner(s)${fallbackHandler && fallbackHandler !== AddressZero ? " and fallback handler" : ""}`,
         template.setup(owners, threshold, to, data, fallbackHandler, AddressZero, 0, AddressZero),
         !logGasUsage,
     );

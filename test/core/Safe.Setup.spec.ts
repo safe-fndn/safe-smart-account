@@ -2,7 +2,7 @@ import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { AddressZero } from "@ethersproject/constants";
 
-import { deployContractFromSource, getMock, getSafeSingleton, getSafeTemplate } from "../utils/setup";
+import { deployContractFromSource, getEip7702SafeTemplate, getMock, getSafeSingleton, getSafeTemplate } from "../utils/setup";
 import { calculateSafeDomainSeparator } from "../../src/utils/execution";
 import { AddressOne } from "../../src/utils/constants";
 import { chainId, encodeTransfer } from "../utils/encoding";
@@ -145,6 +145,44 @@ describe("Safe", () => {
             await expect(
                 template.setup([user2.address, AddressOne], 2, AddressZero, "0x", AddressZero, AddressZero, 0, AddressZero),
             ).to.be.revertedWith("GS203");
+        });
+
+        it("should revert if Safe itself is used as an owner", async () => {
+            const {
+                template,
+                signers: [, user2],
+            } = await setupTests();
+            await expect(
+                template.setup(
+                    [user2.address, await template.getAddress()],
+                    2,
+                    AddressZero,
+                    "0x",
+                    AddressZero,
+                    AddressZero,
+                    0,
+                    AddressZero,
+                ),
+            ).to.be.revertedWith("GS203");
+        });
+
+        it("should allow using the Safe itself if it is an EIP-7702 delegated account [@skip-on-coverage]", async () => {
+            const {
+                signers: [user1, user2],
+            } = await setupTests();
+            const template = await getEip7702SafeTemplate(user1);
+            await expect(
+                template.setup(
+                    [await template.getAddress(), user2.address],
+                    2,
+                    AddressZero,
+                    "0x",
+                    AddressZero,
+                    AddressZero,
+                    0,
+                    AddressZero,
+                ),
+            ).to.not.be.reverted;
         });
 
         it("should revert if same owner is included twice one after each other", async () => {

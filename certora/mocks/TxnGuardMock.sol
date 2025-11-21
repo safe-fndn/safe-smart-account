@@ -3,7 +3,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 import {ITransactionGuard} from "../munged/base/GuardManager.sol";
 import {IERC165} from "../munged/interfaces/IERC165.sol";
-import "../munged/libraries/Enum.sol";
+import "../munged/interfaces/Enum.sol";
 
 contract TxnGuardMock is ITransactionGuard {
 
