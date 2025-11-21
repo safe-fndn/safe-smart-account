@@ -3,7 +3,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 import {IModuleGuard} from "../munged/base/ModuleManager.sol";
 import {IERC165} from "../munged/interfaces/IERC165.sol";
-import "../munged/libraries/Enum.sol";
+import "../munged/interfaces/Enum.sol";
 
 contract ModuleGuardMock is IModuleGuard {
 
