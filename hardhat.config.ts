@@ -30,6 +30,7 @@ const {
     SOLIDITY_VERSION,
     SOLIDITY_SETTINGS,
     HARDHAT_CHAIN_ID,
+    HARDHAT_SECP256R1_PRECOMPILE,
     HARDHAT_ENABLE_GAS_REPORTER,
 } = process.env;
 
@@ -88,6 +89,7 @@ const userConfig: HardhatUserConfig = {
             blockGasLimit: 100000000,
             gas: 100000000,
             chainId: Number(HARDHAT_CHAIN_ID ?? 31337),
+            enableRip7212: HARDHAT_SECP256R1_PRECOMPILE === "1",
         },
         mainnet: {
             ...sharedNetworkConfig,
