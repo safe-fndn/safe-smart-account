@@ -483,7 +483,7 @@ describe("Safe", () => {
             await safe["checkSignatures(address,bytes32,bytes)"](user1.address, txHash, signatures);
         });
 
-        it("should not allow trivial signatures when the Safe owns itself", async () => {
+        it("should not allow trivial signatures when the Safe owns itself [@skip-on-coverage]", async () => {
             const {
                 signers: [authority, user1],
             } = await setupTests();
@@ -512,7 +512,7 @@ describe("Safe", () => {
             await expect(safe["checkSignatures(address,bytes32,bytes)"](user1.address, txHash, signatures)).to.be.revertedWith("GS025");
         });
 
-        it("should allow for EIP-7702 delegated Safes to sign for themselves", async () => {
+        it("should allow for EIP-7702 delegated Safes to sign for themselves [@skip-on-coverage]", async () => {
             const {
                 signers: [authority],
             } = await setupTests();

@@ -166,7 +166,7 @@ describe("Safe", () => {
             ).to.be.revertedWith("GS203");
         });
 
-        it("should allow using the Safe itself if it is an EIP-7702 delegated account", async () => {
+        it("should allow using the Safe itself if it is an EIP-7702 delegated account [@skip-on-coverage]", async () => {
             const {
                 signers: [user1, user2],
             } = await setupTests();

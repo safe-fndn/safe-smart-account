@@ -12,7 +12,7 @@ describe("OwnerManager", () => {
         const [user1] = signers;
         return {
             safe: await getSafe({ owners: [user1.address] }),
-            eip7702Safe: await getEip7702Safe(authority, { owners: [user1.address] }),
+            authority,
             signers,
         };
     });
@@ -57,11 +57,12 @@ describe("OwnerManager", () => {
             ).to.revertedWith("GS203");
         });
 
-        it("can add the Safe itselft when it is an EIP-7702 delegated account", async () => {
-            const {
-                eip7702Safe: safe,
+        it("can add the Safe itselft when it is an EIP-7702 delegated account [@skip-on-coverage]", async () => {
+          const {
+                authority,
                 signers: [user1],
             } = await setupTests();
+            const safe = await getEip7702Safe(authority, { owners: [user1.address] });
             await expect(executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [await safe.getAddress(), 1], [user1])).to.not
                 .be.reverted;
         });
@@ -163,11 +164,12 @@ describe("OwnerManager", () => {
             );
         });
 
-        it("can remove the Safe itself", async () => {
+        it("can remove the Safe itself [@skip-on-coverage]", async () => {
             const {
-                eip7702Safe: safe,
+                authority,
                 signers: [user1],
             } = await setupTests();
+            const safe = await getEip7702Safe(authority, { owners: [user1.address] });
             await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [await safe.getAddress(), 1], [user1]);
 
             await expect(executeContractCallWithSigners(safe, safe, "removeOwner", [AddressOne, await safe.getAddress(), 1], [user1])).to
@@ -307,11 +309,12 @@ describe("OwnerManager", () => {
             ).to.revertedWith("GS203");
         });
 
-        it("can swap in Safe itself if it is an EIP-7702 account", async () => {
+        it("can swap in Safe itself if it is an EIP-7702 account [@skip-on-coverage]", async () => {
             const {
-                eip7702Safe: safe,
+                authority,
                 signers: [user1],
             } = await setupTests();
+            const safe = await getEip7702Safe(authority, { owners: [user1.address] });
             const safeAddress = await safe.getAddress();
 
             await expect(executeContractCallWithSigners(safe, safe, "swapOwner", [AddressOne, user1.address, safeAddress], [user1])).to.not
