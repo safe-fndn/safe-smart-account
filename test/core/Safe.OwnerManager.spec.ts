@@ -58,7 +58,7 @@ describe("OwnerManager", () => {
         });
 
         it("can add the Safe itselft when it is an EIP-7702 delegated account [@skip-on-coverage]", async () => {
-          const {
+            const {
                 authority,
                 signers: [user1],
             } = await setupTests();
