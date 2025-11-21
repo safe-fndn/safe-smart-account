@@ -147,6 +147,25 @@ describe("Safe", () => {
             ).to.be.revertedWith("GS203");
         });
 
+        it("should revert if Safe itself is used as an owner", async () => {
+            const {
+                template,
+                signers: [, user2],
+            } = await setupTests();
+            await expect(
+                template.setup(
+                    [user2.address, await template.getAddress()],
+                    2,
+                    AddressZero,
+                    "0x",
+                    AddressZero,
+                    AddressZero,
+                    0,
+                    AddressZero,
+                ),
+            ).to.be.revertedWith("GS203");
+        });
+
         it("should revert if same owner is included twice one after each other", async () => {
             const {
                 template,

@@ -4,7 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {BaseTransactionGuard} from "./../../base/GuardManager.sol";
 import {ISafe} from "./../../interfaces/ISafe.sol";
-import {Enum} from "./../../libraries/Enum.sol";
+import {Enum} from "./../../interfaces/Enum.sol";
 
 /**
  * @title OnlyOwnersGuard - Only allows owners to execute transactions.

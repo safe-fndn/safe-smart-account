@@ -4,7 +4,7 @@ import { expect } from "chai";
 import hre from "hardhat";
 import crypto from "crypto";
 import { AddressZero } from "@ethersproject/constants";
-import { getSafeTemplate, getSafe } from "../utils/setup";
+import { getSafeTemplate, getSafe, getEip7702Safe } from "../utils/setup";
 import {
     safeSignTypedData,
     executeTx,
@@ -485,11 +485,12 @@ describe("Safe", () => {
 
         it("should not allow trivial signatures when the Safe owns itself", async () => {
             const {
-                signers: [user1],
+                signers: [authority, user1],
             } = await setupTests();
             const compatFallbackHandler = await getCompatFallbackHandler();
             const compatFallbackHandlerAddress = await compatFallbackHandler.getAddress();
-            const safe = await getSafe({
+
+            const safe = await getEip7702Safe(authority, {
                 owners: [user1.address],
                 threshold: 1,
                 fallbackHandler: compatFallbackHandlerAddress,
@@ -509,6 +510,24 @@ describe("Safe", () => {
             const signatures = buildSignatureBytes([selfSignature]);
 
             await expect(safe["checkSignatures(address,bytes32,bytes)"](user1.address, txHash, signatures)).to.be.revertedWith("GS025");
+        });
+
+        it("should allow for EIP-7702 delegated Safes to sign for themselves", async () => {
+            const {
+                signers: [authority],
+            } = await setupTests();
+
+            const safe = await getEip7702Safe(authority, {
+                owners: [authority.address],
+            });
+            const safeAddress = await safe.getAddress();
+
+            const tx = buildSafeTransaction({ to: safeAddress, nonce: await safe.nonce() });
+            const txHash = calculateSafeTransactionHash(safeAddress, tx, await chainId());
+
+            const signatures = buildSignatureBytes([await safeSignTypedData(authority, safeAddress, tx)]);
+
+            await expect(safe["checkSignatures(address,bytes32,bytes)"](authority.address, txHash, signatures)).to.not.be.reverted;
         });
     });
 

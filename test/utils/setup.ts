@@ -134,6 +134,36 @@ export const getSafe = async (safe: GetSafeParameters) => {
     return template;
 };
 
+export const getEip7702Safe = async (authority: Signer, safe: GetSafeParameters) => {
+    const {
+        singleton = await getSafeSingleton(),
+        owners,
+        threshold = owners.length,
+        to = AddressZero,
+        data = "0x",
+        fallbackHandler = AddressZero,
+        logGasUsage = false,
+    } = safe;
+
+    // Note that this process is UNSAFE and only used for testing. If used in the real world, your Safe setup can be
+    // front-run by anyone and created with different parameters than you intended.
+    const authorization = await authority.authorize({
+        address: await singleton.getAddress(),
+        // Since we are using the authority to set the delegation on itself, we need to sign it for the subsequent
+        // nonce, as the current one is used for the transaction execution.
+        nonce: (await hre.ethers.provider.getTransactionCount(authority)) + 1,
+    });
+    const delegation = await authority.sendTransaction({ to: authority, authorizationList: [authorization] });
+    await delegation.wait();
+    const template = singleton.attach(await authority.getAddress()) as Safe | SafeL2;
+    await logGas(
+        `Setup EIP-7702 delegated Safe with ${owners.length} owner(s)${fallbackHandler && fallbackHandler !== AddressZero ? " and fallback handler" : ""}`,
+        template.setup(owners, threshold, to, data, fallbackHandler, AddressZero, 0, AddressZero),
+        !logGasUsage,
+    );
+    return template;
+};
+
 export const getTokenCallbackHandler = async (address?: string) => {
     if (!address) {
         const tokenCallbackHandlerDeployment = await defaultTokenCallbackHandlerDeployment();

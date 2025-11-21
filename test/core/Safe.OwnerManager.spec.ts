@@ -1,17 +1,18 @@
 import { expect } from "chai";
 import { deployments, ethers } from "hardhat";
 import { AddressZero } from "@ethersproject/constants";
-import { getSafe } from "../utils/setup";
+import { getSafe, getEip7702Safe } from "../utils/setup";
 import { executeContractCallWithSigners } from "../../src/utils/execution";
 import { AddressOne } from "../../src/utils/constants";
 
 describe("OwnerManager", () => {
     const setupTests = deployments.createFixture(async ({ deployments }) => {
         await deployments.fixture();
-        const signers = await ethers.getSigners();
+        const [authority, ...signers] = await ethers.getSigners();
         const [user1] = signers;
         return {
             safe: await getSafe({ owners: [user1.address] }),
+            eip7702Safe: await getEip7702Safe(authority, { owners: [user1.address] }),
             signers,
         };
     });
@@ -44,6 +45,25 @@ describe("OwnerManager", () => {
             await expect(executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [AddressZero, 1], [user1])).to.revertedWith(
                 "GS203",
             );
+        });
+
+        it("can not add Safe itself", async () => {
+            const {
+                safe,
+                signers: [user1],
+            } = await setupTests();
+            await expect(
+                executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [await safe.getAddress(), 1], [user1]),
+            ).to.revertedWith("GS203");
+        });
+
+        it("can add the Safe itselft when it is an EIP-7702 delegated account", async () => {
+            const {
+                eip7702Safe: safe,
+                signers: [user1],
+            } = await setupTests();
+            await expect(executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [await safe.getAddress(), 1], [user1])).to.not
+                .be.reverted;
         });
 
         it("can not add owner twice", async () => {
@@ -141,6 +161,17 @@ describe("OwnerManager", () => {
             await expect(executeContractCallWithSigners(safe, safe, "removeOwner", [AddressOne, AddressZero, 1], [user1])).to.revertedWith(
                 "GS203",
             );
+        });
+
+        it("can remove the Safe itself", async () => {
+            const {
+                eip7702Safe: safe,
+                signers: [user1],
+            } = await setupTests();
+            await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [await safe.getAddress(), 1], [user1]);
+
+            await expect(executeContractCallWithSigners(safe, safe, "removeOwner", [AddressOne, await safe.getAddress(), 1], [user1])).to
+                .not.be.reverted;
         });
 
         it("Invalid prevOwner, owner pair provided - Invalid target", async () => {
@@ -274,6 +305,17 @@ describe("OwnerManager", () => {
             await expect(
                 executeContractCallWithSigners(safe, safe, "swapOwner", [AddressOne, user1.address, safeAddress], [user1]),
             ).to.revertedWith("GS203");
+        });
+
+        it("can swap in Safe itself if it is an EIP-7702 account", async () => {
+            const {
+                eip7702Safe: safe,
+                signers: [user1],
+            } = await setupTests();
+            const safeAddress = await safe.getAddress();
+
+            await expect(executeContractCallWithSigners(safe, safe, "swapOwner", [AddressOne, user1.address, safeAddress], [user1])).to.not
+                .be.reverted;
         });
 
         it("can not swap in sentinel", async () => {

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.7.0 <0.9.0;
+
+import {EIP7702Delegation} from "../common/EIP7702Delegation.sol";
 import {SelfAuthorized} from "../common/SelfAuthorized.sol";
 import {IOwnerManager} from "../interfaces/IOwnerManager.sol";
 
@@ -11,7 +13,7 @@ import {IOwnerManager} from "../interfaces/IOwnerManager.sol";
  * @author Stefan George - @Georgi87
  * @author Richard Meissner - @rmeissner
  */
-abstract contract OwnerManager is SelfAuthorized, IOwnerManager {
+abstract contract OwnerManager is EIP7702Delegation, SelfAuthorized, IOwnerManager {
     /**
      * @dev The sentinel owner value in the {owners} linked list.
      *      `SENTINEL_OWNERS` is used to traverse {owners}, such that:
@@ -53,13 +55,12 @@ abstract contract OwnerManager is SelfAuthorized, IOwnerManager {
         address currentOwner = SENTINEL_OWNERS;
         uint256 ownersLength = _owners.length;
         for (uint256 i = 0; i < ownersLength; ++i) {
-            // Owner address cannot be null.
             address owner = _owners[i];
-            if (owner == address(0) || owner == SENTINEL_OWNERS) revertWithError("GS203");
-            // No duplicate owners allowed.
-            if (owner == currentOwner || owners[owner] != address(0)) revertWithError("GS204");
             owners[currentOwner] = owner;
             currentOwner = owner;
+            // Make sure to check that the `owner` can be added _after_ the `currentOwner` is
+            // added, otherwise you may miss detecting duplicate consecutive owners.
+            requireCanAddOwner(owner);
         }
         owners[currentOwner] = SENTINEL_OWNERS;
         ownerCount = ownersLength;
@@ -70,10 +71,7 @@ abstract contract OwnerManager is SelfAuthorized, IOwnerManager {
      * @inheritdoc IOwnerManager
      */
     function addOwnerWithThreshold(address owner, uint256 _threshold) public override authorized {
-        // Owner address cannot be 0 or the sentinel.
-        if (owner == address(0) || owner == SENTINEL_OWNERS) revertWithError("GS203");
-        // No duplicate owners allowed.
-        if (owners[owner] != address(0)) revertWithError("GS204");
+        requireCanAddOwner(owner);
         owners[owner] = owners[SENTINEL_OWNERS];
         owners[SENTINEL_OWNERS] = owner;
         ++ownerCount;
@@ -89,9 +87,7 @@ abstract contract OwnerManager is SelfAuthorized, IOwnerManager {
         // Only allow the removal of an owner if the threshold can still be reached.
         // Here we do pre-decrement as it is cheaper and allows us to check if the threshold is still reachable.
         if (--ownerCount < _threshold) revertWithError("GS201");
-        // Validate owner address and check that it corresponds to owner index.
-        if (owner == address(0) || owner == SENTINEL_OWNERS) revertWithError("GS203");
-        if (owners[prevOwner] != owner) revertWithError("GS205");
+        requireCanRemoveOwner(prevOwner, owner);
         owners[prevOwner] = owners[owner];
         owners[owner] = address(0);
         emit RemovedOwner(owner);
@@ -103,18 +99,35 @@ abstract contract OwnerManager is SelfAuthorized, IOwnerManager {
      * @inheritdoc IOwnerManager
      */
     function swapOwner(address prevOwner, address oldOwner, address newOwner) public override authorized {
-        // Owner address cannot be null, the sentinel or the Safe itself.
-        if (newOwner == address(0) || newOwner == SENTINEL_OWNERS || newOwner == address(this)) revertWithError("GS203");
-        // No duplicate owners allowed.
-        if (owners[newOwner] != address(0)) revertWithError("GS204");
-        // Validate `oldOwner` address and check that it corresponds to owner index.
-        if (oldOwner == address(0) || oldOwner == SENTINEL_OWNERS) revertWithError("GS203");
-        if (owners[prevOwner] != oldOwner) revertWithError("GS205");
+        requireCanAddOwner(newOwner);
+        requireCanRemoveOwner(prevOwner, oldOwner);
         owners[newOwner] = owners[oldOwner];
         owners[prevOwner] = newOwner;
         owners[oldOwner] = address(0);
         emit RemovedOwner(oldOwner);
         emit AddedOwner(newOwner);
+    }
+
+    /**
+     * @notice Checks whether an owner address can be added, and reverts if it cannot.
+     * @param owner The owner address to check.
+     */
+    function requireCanAddOwner(address owner) internal view {
+        // Owner address cannot be null or the sentinel.
+        if (owner == address(0) || owner == SENTINEL_OWNERS || (owner == address(this) && !isThisDelegatedAccount()))
+            revertWithError("GS203");
+        // No duplicate owners allowed.
+        if (owners[owner] != address(0)) revertWithError("GS204");
+    }
+
+    /**
+     * @notice Checks whether an owner address can be removed, and reverts if it cannot.
+     * @param owner The owner address to check.
+     */
+    function requireCanRemoveOwner(address prevOwner, address owner) internal view {
+        // Validate owner address and check that it corresponds to owner index.
+        if (owner == address(0) || owner == SENTINEL_OWNERS) revertWithError("GS203");
+        if (owners[prevOwner] != owner) revertWithError("GS205");
     }
 
     /**
