@@ -5,6 +5,7 @@ import {FallbackManager} from "./base/FallbackManager.sol";
 import {ITransactionGuard, GuardManager} from "./base/GuardManager.sol";
 import {ModuleManager} from "./base/ModuleManager.sol";
 import {OwnerManager} from "./base/OwnerManager.sol";
+import {EIP7951} from "./common/EIP7951.sol";
 import {NativeCurrencyPaymentFallback} from "./common/NativeCurrencyPaymentFallback.sol";
 import {SecuredTokenTransfer} from "./common/SecuredTokenTransfer.sol";
 import {SignatureDecoder} from "./common/SignatureDecoder.sol";
@@ -46,6 +47,7 @@ contract Safe is
     ISignatureValidatorConstants,
     FallbackManager,
     StorageAccessible,
+    EIP7951,
     ISafe
 {
     using SafeMath for uint256;
@@ -364,40 +366,31 @@ contract Safe is
                 if (uint256(s) < requiredSignatures.mul(65)) revertWithError("GS021");
                 if (uint256(s).add(96) > signatures.length) revertWithError("GS027");
 
-                // Call the RIP-7212/EIP-7951 precompile, we resort to assembly shenanigans here as the precompile is
-                // not supported in the Solidity version we use.
-                bool success;
+                // Extract the remaining signature parameters from the dynamic part, we rely on some assembly here in
+                // order to efficiently read the signature verification parameters from memory.
+                uint256 qx;
+                uint256 qy;
                 /* solhint-disable no-inline-assembly */
                 /// @solidity memory-safe-assembly
                 assembly {
-                    // Get the free memory pointer
-                    let ptr := mload(0x40)
-
                     // Compute the memory offset of the dynamic part of the signature containing the additional
                     // `secp256r1` signature data. Note that we need to offset the signatures by an additional 32 bytes
                     // to account for the length that is stored at the start of the `signatures` bytes memory.
                     let sig := add(signatures, add(s, 0x20))
 
-                    // Now, prepare the call to the precompile: address(0x100).call(h, r, s, qx, qy)
-                    // We write the return data of the call to the scratch space at memory address 0.
-                    mstore(ptr, dataHash)
-                    mstore(add(ptr, 0x20), r)
-                    mstore(add(ptr, 0x40), mload(sig))
-                    mstore(add(ptr, 0x60), mload(add(sig, 0x20)))
-                    mstore(add(ptr, 0x80), mload(add(sig, 0x40)))
-                    success := staticcall(gas(), 0x100, ptr, 0xa0, 0x00, 0x20)
-
-                    // The precompile is defined to return exactly `uint256(1)` in case the signature is valid, check
-                    // the return data is exactly what we expect. Note that in case the precompile is not supported,
-                    // the `returndatasize` will be 0 making `success` false.
-                    success := and(success, and(eq(returndatasize(), 0x20), eq(mload(0x00), 1)))
+                    // Now, read the signature data that we need to call the precompile. Note that we overwrite the `s`
+                    // value (which previously held the offset in the `signatures` with the dynamic part, with the
+                    // actual ECDSA signature `s` value.
+                    s := mload(sig)
+                    qx := mload(add(sig, 0x20))
+                    qy := mload(add(sig, 0x40))
 
                     // Just like for regular `secp256k1` (with a **k**) EOAs, we define the address to be the last 20
                     // bytes of the hash of the public key coordinates.
                     currentOwner := and(keccak256(add(sig, 0x20), 0x40), 0xffffffffffffffffffffffffffffffffffffffff)
                 }
                 /* solhint-enable no-inline-assembly */
-                if (!success) revertWithError("GS028");
+                if (!p256Verify(dataHash, r, s, qx, qy)) revertWithError("GS028");
             } else if (v > 30) {
                 // If `v > 30` then default `v` (27, 28) has been adjusted to encode an `eth_sign` signature.
                 // To support `eth_sign` and similar we adjust `v` and hash the `dataHash` with the EIP-191 message prefix before applying `ecrecover`.
