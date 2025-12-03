@@ -57,7 +57,7 @@ describe("OwnerManager", () => {
             ).to.revertedWith("GS203");
         });
 
-        it("can add the Safe itselft when it is an EIP-7702 delegated account [@skip-on-coverage]", async () => {
+        it("can add the Safe itself when it is an EIP-7702 delegated account [@skip-on-coverage]", async () => {
             const {
                 authority,
                 signers: [user1],
