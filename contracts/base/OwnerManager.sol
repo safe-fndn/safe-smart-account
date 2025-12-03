@@ -109,24 +109,33 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     }
 
     /**
+     * @notice Checks whether an account is a valid owner address, and reverts if it is not.
+     * @param owner The owner address to check.
+     */
+    function requireIsValidOwner(address owner) internal view {
+        // Owner address cannot be null, the sentinel, or the Safe itself (unless it is an EIP-7702 delegated account).
+        if (owner == address(0) || owner == SENTINEL_OWNERS || (owner == address(this) && !isThisDelegatedAccount()))
+            revertWithError("GS203");
+    }
+
+    /**
      * @notice Checks whether an owner address can be added, and reverts if it cannot.
      * @param owner The owner address to check.
      */
     function requireCanAddOwner(address owner) internal view {
-        // Owner address cannot be null or the sentinel.
-        if (owner == address(0) || owner == SENTINEL_OWNERS || (owner == address(this) && !isThisDelegatedAccount()))
-            revertWithError("GS203");
+        requireIsValidOwner(owner);
         // No duplicate owners allowed.
         if (owners[owner] != address(0)) revertWithError("GS204");
     }
 
     /**
      * @notice Checks whether an owner address can be removed, and reverts if it cannot.
+     * @param prevOwner The owner that points to `owner` in the linked list.
      * @param owner The owner address to check.
      */
     function requireCanRemoveOwner(address prevOwner, address owner) internal view {
-        // Validate owner address and check that it corresponds to owner index.
-        if (owner == address(0) || owner == SENTINEL_OWNERS) revertWithError("GS203");
+        requireIsValidOwner(owner);
+        // Check that it corresponds to owner index.
         if (owners[prevOwner] != owner) revertWithError("GS205");
     }
 

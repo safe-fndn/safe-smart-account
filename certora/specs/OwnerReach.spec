@@ -17,6 +17,8 @@
 methods {
     function isOwner(address) external returns (bool) envfree;
     function getThreshold() external returns (uint256) envfree;
+
+    function EIP7702.isThisDelegatedAccount() internal returns (bool) => CONSTANT;
 }
 
 definition reachableOnly(method f) returns bool =
