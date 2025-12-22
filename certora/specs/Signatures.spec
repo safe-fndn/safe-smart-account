@@ -14,7 +14,7 @@ methods {
     // summaries
     function SignatureDecoder.signatureSplit(bytes memory signatures, uint256 pos) internal returns (uint8,bytes32,bytes32) => signatureSplitGhost(signatures,pos);
     function Safe.checkContractSignature(address, bytes32, bytes memory, uint256) internal => NONDET;
-    function EIP7951.p256Verify(bytes32, bytes32, bytes32, uint256, uint256) internal returns (address) => CONSTANT;
+    function EIP7951.p256Verify(bytes32, bytes32, bytes32, uint256, uint256) internal returns (bool) => CONSTANT;
 
     // needed for the execTransaction <> signatures rule
     function Safe.getTransactionHash(
@@ -62,7 +62,7 @@ rule checkSignatures() {
     vAB2, rAB2, sAB2 = signatureSplitPublic(signaturesAB, 1);
     require to_mathint(signaturesAB.length) == signaturesA.length + signaturesB.length;
 
-    // This rule does not support contract or secp256k1 signatures, because of
+    // This rule does not support contract or secp256r1 signatures, because of
     // their dynamic parts - so `require` them away...
     require vA != 0 && vA != 2 && vB != 0 && vB != 2;
 

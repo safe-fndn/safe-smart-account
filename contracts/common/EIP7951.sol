@@ -16,9 +16,9 @@ abstract contract EIP7951 {
      * @param s Signature s-component.
      * @param qx Public key x-coordinate.
      * @param qy Public key y-coordinate.
-     * @return result The public address corresponding to the public key coordinates or `0` for an invalid signature.
+     * @return result Whether or not the signature is valid.
      */
-    function p256Verify(bytes32 h, bytes32 r, bytes32 s, uint256 qx, uint256 qy) internal view returns (address result) {
+    function p256Verify(bytes32 h, bytes32 r, bytes32 s, uint256 qx, uint256 qy) internal view returns (bool result) {
         // Call the EIP-7951/RIP-7212 precompile, we resort to assembly shenanigans here to avoid superfluous memory
         // allocations (both for encoding the parameters and decoding the result) and reduce code size.
         // supported in the Solidity version we use.
@@ -36,16 +36,12 @@ abstract contract EIP7951 {
             mstore(add(ptr, 0x80), qy)
 
             // We write the return data of the call to the scratch space at memory address 0.
-            let success := staticcall(gas(), 0x100, ptr, 0xa0, 0x00, 0x20)
+            result := staticcall(gas(), 0x100, ptr, 0xa0, 0x00, 0x20)
 
             // The precompile is defined to return exactly `uint256(1)` iff signature is valid, check the return data is
             // exactly what we expect. Note that in case the precompile is not supported, the `returndatasize` will be 0
             // making `success` false.
-            success := and(success, and(eq(returndatasize(), 0x20), eq(mload(0x00), 1)))
-
-            // Just like for regular `secp256k1` (with a **k**) EOAs, we define the public address to be the last 20
-            // bytes of the hash of the public key coordinates.
-            result := mul(success, and(keccak256(add(ptr, 0x60), 0x40), 0xffffffffffffffffffffffffffffffffffffffff))
+            result := and(result, and(eq(returndatasize(), 0x20), eq(mload(0x00), 1)))
         }
         /* solhint-enable no-inline-assembly */
     }

@@ -371,6 +371,7 @@ contract Safe is
                 // order to efficiently read the signature verification parameters from memory.
                 uint256 qx;
                 uint256 qy;
+                address signerAddress;
                 /* solhint-disable no-inline-assembly */
                 /// @solidity memory-safe-assembly
                 assembly {
@@ -386,9 +387,13 @@ contract Safe is
                     s := mload(add(sig, 0x20))
                     qx := mload(add(sig, 0x40))
                     qy := mload(add(sig, 0x60))
+
+                    // Just like for regular `secp256k1` (with a **k**) EOAs, we define the public address to be the
+                    // last 20 bytes of the hash of the public key coordinates.
+                    signerAddress := keccak256(add(sig, 0x40), 0x40)
                 }
                 /* solhint-enable no-inline-assembly */
-                if (currentOwner != p256Verify(dataHash, r, s, qx, qy)) revertWithError("GS028");
+                if (currentOwner != signerAddress || !p256Verify(dataHash, r, s, qx, qy)) revertWithError("GS028");
             } else if (v > 30) {
                 // If `v > 30` then default `v` (27, 28) has been adjusted to encode an `eth_sign` signature.
                 // To support `eth_sign` and similar we adjust `v` and hash the `dataHash` with the EIP-191 message prefix before applying `ecrecover`.
