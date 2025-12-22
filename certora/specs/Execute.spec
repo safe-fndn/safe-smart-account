@@ -21,7 +21,7 @@ methods {
         address msgSender
     ) external => DISPATCHER(true) ;
 
-    function _.checkAfterExecution(bytes32 hash, bool success) external 
+    function _.checkAfterExecution(bytes32 hash, bool success) external
         => DISPATCHER(true);
 
     function Executor.execute(
@@ -48,7 +48,7 @@ methods {
 persistent ghost bool execute_called { init_state axiom execute_called == false; }
 
 function execute_summary() returns bool {
-    execute_called = true ;    
+    execute_called = true ;
     bool new_var ;
     return new_var ;
 }
@@ -69,7 +69,7 @@ rule execTxnModulePermissions(
 
     // execTxn from module passes
     execTransactionFromModule(e,to,value,data,operation);
-    
+
     // msg sender is the module
     assert (module_enabled);
 }
@@ -85,13 +85,13 @@ rule execTxnModuleReturnDataPermissions(
 
     // execTxn from module passes
     execTransactionFromModuleReturnData(e,to,value,data,operation);
-    
+
     // msg sender is the module
     assert (module_enabled);
 }
 
 
-/// @dev execute can only be called by execTransaction or execTransactionFromModule 
+/// @dev execute can only be called by execTransaction or execTransactionFromModule
 rule executePermissions(method f) filtered {
     f -> f.selector != sig:simulateAndRevert(address,bytes).selector &&
          f.selector != sig:getStorageAt(uint256,uint256).selector
@@ -102,7 +102,7 @@ rule executePermissions(method f) filtered {
     calldataarg args;
     f(e, args);
 
-    assert (execute_called => 
+    assert (execute_called =>
         f.selector == sig:execTransaction(
                             address,
                             uint256,
@@ -123,7 +123,7 @@ rule executePermissions(method f) filtered {
                             address,
                             uint256,
                             bytes,
-                            Enum.Operation).selector || 
+                            Enum.Operation).selector ||
         f.selector == sig:setup(
                             address[],
                             uint256,
@@ -155,7 +155,7 @@ rule executeThresholdMet(
     // a call to execTxn succeeds
     execTransaction(e,to,value,data,operation,safeTxGas,baseGas,
         gasPrice,gasToken,refundReceiver,signatures);
-    
+
     // an added function to the harness SafeHarness.sol that checks signature numbers
     assert (numSigsSufficient(signatures,threshold));
 }

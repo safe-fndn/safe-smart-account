@@ -29,7 +29,7 @@
 - `GS020`: Signatures data too short
   - **Why:** Not enough data was provided for signature validation (less than threshold * 65 bytes).
   - **How to debug/solve:** Ensure the number of signatures matches the threshold.
-- `GS021`: Invalid contract signature location: inside static part
+- `GS021`: Invalid signature data pointer location: inside static part
   - **Why:** The signature offset points inside the static part of the data, not the dynamic part.
   - **How to debug/solve:** Check the signatures are correctly encoded.
 - `GS022`: Invalid contract signature location: length not present
@@ -47,6 +47,12 @@
 - `GS026`: Invalid owner provided
   - **Why:** An invalid or duplicate owner was found in the signatures array, or the hash was calculated with a different nonce than expected.
   - **How to debug/solve:** Ensure each owner is unique and valid, the signatures are sorted by owner, and the correct nonce is used for the transaction hash.
+- `GS027`: Invalid secp256r1 signature location
+  - **Why:** An invalid location was provided for the additional signature data required for secp256r1 signature verification.
+  - **How to debug/solve:** Ensure the secp256r1 signature is correctly encoded in the dynamic part of the signature bytes.
+- `GS028`: Invalid secp256r1 signature
+  - **Why:** The secp256r1 signature verification failed.
+  - **How to debug/solve:** Ensure the secp256r1 signature is valid and that either RIP-7212 or EIP-7951 is supported on the chain.
 
 ### General auth related
 - `GS030`: Only owners can approve a hash

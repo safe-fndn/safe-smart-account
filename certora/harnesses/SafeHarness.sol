@@ -26,7 +26,7 @@ contract SafeHarness is Safe {
     }
 
     function getCurrentOwner(bytes32 dataHash, uint8 v, bytes32 r, bytes32 s) public pure returns (address currentOwner) {
-        if (v == 0 || v == 1) {
+        if (v == 0 || v == 1 || v == 2) {
             currentOwner = address(uint160(uint256(r)));
         } else if (v > 30) {
             currentOwner = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)), v - 4, r, s);
