@@ -25,7 +25,7 @@ abstract contract EIP7951 {
         /* solhint-disable no-inline-assembly */
         /// @solidity memory-safe-assembly
         assembly {
-            // Get the free memory pointer for writing some teporary data to memory (meaning that we don't need to
+            // Get the free memory pointer for writing some temporary data to memory (meaning that we don't need to
             // actually allocate memory and update the pointer).
             let ptr := mload(0x40)
 
