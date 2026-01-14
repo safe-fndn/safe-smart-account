@@ -103,7 +103,6 @@ This command will upload the contract source to Etherscan
 ```bash
 npx hardhat --network <network> etherscan-verify
 ```
-
 ## Documentation
 
 - [Safe developer portal](http://docs.safe.global)
