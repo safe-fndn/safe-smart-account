@@ -25,7 +25,8 @@ abstract contract EIP7951 {
         /* solhint-disable no-inline-assembly */
         /// @solidity memory-safe-assembly
         assembly {
-            // Get the free memory pointer
+            // Get the free memory pointer for writing some teporary data to memory (meaning that we don't need to
+            // actually allocate memory and update the pointer).
             let ptr := mload(0x40)
 
             // Now, prepare the call to the precompile: `address(0x100).call(h, r, s, qx, qy)`.
@@ -40,7 +41,7 @@ abstract contract EIP7951 {
 
             // The precompile is defined to return exactly `uint256(1)` iff signature is valid, check the return data is
             // exactly what we expect. Note that in case the precompile is not supported, the `returndatasize` will be 0
-            // making `success` false.
+            // making `result` false.
             result := and(result, and(eq(returndatasize(), 0x20), eq(mload(0x00), 1)))
         }
         /* solhint-enable no-inline-assembly */
