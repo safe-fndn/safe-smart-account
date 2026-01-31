@@ -59,6 +59,8 @@
     "devDependencies": {
         "@eslint/js": "^9.39.1",
         "@noble/curves": "^2.0.1",
+        "@nomicfoundation/hardhat-ignition": "^0.15.0",
+        "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
         "@nomicfoundation/hardhat-toolbox": "^6.1.0",
         "@openzeppelin/contracts": "^3.4.2",
         "@safe-global/mock-contract": "^4.1.0",

@@ -1,4 +1,5 @@
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-ignition-ethers";
 import type { HardhatUserConfig, HttpNetworkUserConfig } from "hardhat/types";
 import "hardhat-deploy";
 import type { DeterministicDeploymentInfo } from "hardhat-deploy/dist/types";
@@ -72,6 +73,7 @@ const userConfig: HardhatUserConfig = {
         cache: "build/cache",
         deploy: "src/deploy",
         sources: "contracts",
+        ignition: "ignition",
     },
     typechain: {
         outDir: "typechain-types",
