@@ -3,7 +3,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 /**
  * @title EIP-7951
- * @notice Base contract with adds support for calling the `p256verify` precompile.
+ * @notice Base contract that adds support for calling the `p256verify` precompile.
  * @dev This was split into its own function to enable CVL summaries for better formal verification support. Note that
  *      this contract also works with RIP-7212 which has the exact same interface.
  * @author Nicholas Rodrigues Lordello - @nlordell
