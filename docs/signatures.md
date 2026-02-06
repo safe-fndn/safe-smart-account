@@ -4,7 +4,7 @@ The Safe supports different types of signatures. All signatures are combined int
 
 ### Encoding
 
-Each signature has a constant length of 65 bytes. If more data is necessary it can be appended to the end of concatenated constant data of all signatures. The position is encoded into the constant length data.
+Each signature has a constant length of 65 bytes. If more data is necessary, it can be appended to the end of concatenated constant data of all signatures. The position is encoded into the constant length data.
 
 Constant part per signature: `{(max) 64-bytes signature data}{1-byte signature type}`
 
@@ -32,7 +32,7 @@ To be able to use `eth_sign` we need to take the parameters `r`, `s` and `v` fro
 
 `{32-bytes r}{32-bytes s}{1-byte v}`
 
-`r`, `s` and `v`are the required parts of the ECDSA signature to recover the signer. `v` will be subtracted by `4` to calculate the signature.
+`r`, `s` and `v` are the required parts of the ECDSA signature to recover the signer. `v` will be subtracted by `4` to calculate the signature.
 
 #### Contract Signature \(EIP-1271\)
 
@@ -42,7 +42,7 @@ To be able to use `eth_sign` we need to take the parameters `r`, `s` and `v` fro
 
 `{32-bytes signature verifier}{32-bytes data position}{1-byte signature type}`
 
-**Signature verifier** - Padded address of the contract that implements the EIP 1271 interface to verify the signature
+**Signature verifier** - Padded address of the contract that implements the EIP-1271 interface to verify the signature
 
 **Data position** - Position of the start of the signature data \(offset relative to the beginning of the signature data\)
 
@@ -64,7 +64,7 @@ The method `signMessage` can be used to mark a message as signed on-chain.
 
 `{32-bytes hash validator}{32-bytes ignored}{1-byte signature type}`
 
-**Hash validator** - Padded address of the account that pre-validated the hash that should be validated. The Safe keeps track of all hashes that have been pre validated. This is done with a **mapping address to mapping of bytes32 to boolean** where it is possible to set a hash as validated by a certain address \(hash validator\). To add an entry to this mapping use `approveHash`. Also if the validator is the sender of transaction that executed the Safe transaction it is **not** required to use `approveHash` to add an entry to the mapping. \(This can be seen in the [Team Edition tests](https://github.com/safe-global/safe-smart-account/blob/v1.0.0/test/gnosisSafeTeamEdition.js)\)
+**Hash validator** - Padded address of the account that pre-validated the hash that should be validated. The Safe keeps track of all hashes that have been pre-validated. This is done with a **mapping address to mapping of bytes32 to boolean** where it is possible to set a hash as validated by a certain address \(hash validator\). To add an entry to this mapping use `approveHash`. Also, if the validator is the sender of the transaction that executed the Safe transaction, it is **not** required to use `approveHash` to add an entry to the mapping. \(This can be seen in the [Team Edition tests](https://github.com/safe-global/safe-smart-account/blob/v1.0.0/test/gnosisSafeTeamEdition.js)\)
 
 **Signature type** - 1
 

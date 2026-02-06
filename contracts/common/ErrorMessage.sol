@@ -4,7 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 /**
  * @title Error Message
- * @notice Revert with with Safe error codes.
+ * @notice Revert with Safe error codes.
  * @dev This contract specializes in reverting for the Safe 5-byte error codes (`GS***`).
  *      This is conceptually very similar to error codes introduced in Solidity version 0.8.
  *      The implementation using assembly saves a lot of gas and code size.

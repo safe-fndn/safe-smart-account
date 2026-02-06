@@ -5,7 +5,7 @@ import {ErrorMessage} from "../common/ErrorMessage.sol";
 
 /**
  * @title Self Authorized
- * @notice Authorizes current contract to perform actions on itself.
+ * @notice Authorizes the current contract to perform actions on itself.
  * @author Richard Meissner - @rmeissner
  */
 abstract contract SelfAuthorized is ErrorMessage {
@@ -21,7 +21,7 @@ abstract contract SelfAuthorized is ErrorMessage {
      * @dev This modifier authorizes calls by ensuring that the contract called itself.
      */
     modifier authorized() {
-        // Modifiers are copied around during compilation. This is a function call to minimized the bytecode size.
+        // Modifiers are copied around during compilation. This is a function call to minimise the bytecode size.
         requireSelfCall();
         _;
     }

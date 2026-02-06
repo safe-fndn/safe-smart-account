@@ -28,9 +28,9 @@ contract SimulateTxAccessor is Executor {
     }
 
     /**
-     * @notice Simulates a Safe transaction and returns the used gas, success boolean and the return data.
+     * @notice Simulates a Safe transaction and returns the used gas, success boolean, and the return data.
      * @dev Executes the specified operation and returns the data from the call.
-     *      This function must be called to be called via `DELEGATECALL`.
+     *      This function must be called via `DELEGATECALL`.
      *      This returns the data equal to `abi.encode(uint256(estimate), bool(success), bytes(returnData))`.
      *      Specifically, the return data will be: `estimate:uint256 || success:bool || returnData.length:uint256 || returnData:bytes`.
      * @param to Destination address.
@@ -57,7 +57,7 @@ contract SimulateTxAccessor is Executor {
             let ptr := mload(0x40)
             // We allocate memory for the return data by setting the free memory location to
             // current free memory location `ptr`, plus the size of the return data and an
-            // addition 32 bytes for the return data length.
+            // additional 32 bytes for the return data length.
             mstore(0x40, add(ptr, add(returndatasize(), 0x20)))
             // Store the size.
             mstore(ptr, returndatasize())

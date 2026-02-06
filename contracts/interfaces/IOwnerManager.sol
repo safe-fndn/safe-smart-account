@@ -29,7 +29,7 @@ interface IOwnerManager {
      * @notice Adds the owner `owner` to the Safe and updates the threshold to `_threshold`.
      * @dev This can only be done via a Safe transaction.
      *      ⚠️⚠️⚠️ A Safe can set itself as an owner which is a valid setup for EIP-7702 delegations.
-     *      However, if address of the accounts is not an EOA and cannot sign for itself, you can
+     *      However, if the address of the account is not an EOA and cannot sign for itself, you can
      *      potentially block access to the account completely. For example, if you have a `n/n`
      *      Safe (so `threshold == ownerCount`) and one of the owners is the Safe itself and not
      *      an EIP-7702 delegated account, then it will not be possible to produce a valid
@@ -55,7 +55,7 @@ interface IOwnerManager {
      * @notice Replaces the owner `oldOwner` in the Safe with `newOwner`.
      * @dev This can only be done via a Safe transaction.
      *      ⚠️⚠️⚠️ A Safe can set itself as an owner which is a valid setup for EIP-7702 delegations.
-     *      However, if address of the accounts is not an EOA and cannot sign for itself, you can
+     *      However, if the address of the account is not an EOA and cannot sign for itself, you can
      *      potentially block access to the account completely. For example, if you have a `n/n`
      *      Safe (so `threshold == ownerCount`) and one of the owners is the Safe itself and not
      *      an EIP-7702 delegated account, then it will not be possible to produce a valid
