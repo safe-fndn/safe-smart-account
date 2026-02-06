@@ -9,8 +9,8 @@ import {TokenCallbackHandler} from "./TokenCallbackHandler.sol";
 /**
  * @title Compatibility Fallback Handler
  * @notice Provides compatibility between pre 1.3.0 and 1.3.0+ Safe smart account contracts.
- * @dev ⚠️⚠️⚠️ This contract is only intended for being used as a fallback handler for a {Safe}.
- *      Using it in other ways may cause undefined behavior. ⚠️⚠️⚠️
+ * @dev ⚠️⚠️⚠️ This contract is only intended to be used as a fallback handler for a {Safe}.
+ *      Using it in other ways may cause undefined behaviour. ⚠️⚠️⚠️
  * @author Richard Meissner - @rmeissner
  */
 contract CompatibilityFallbackHandler is TokenCallbackHandler, ISignatureValidator {
@@ -86,7 +86,7 @@ contract CompatibilityFallbackHandler is TokenCallbackHandler, ISignatureValidat
     }
 
     /**
-     * @dev Returns array of first 10 modules.
+     * @dev Returns an array of the first 10 modules.
      * @return Array of modules.
      */
     function getModules() external view returns (address[] memory) {
@@ -101,8 +101,8 @@ contract CompatibilityFallbackHandler is TokenCallbackHandler, ISignatureValidat
      * @dev Internally reverts execution to avoid side effects (making it effectively static).
      *      Catches the internal revert and returns encoded result as bytes.
      *      Inspired by <https://github.com/gnosis/util-contracts/blob/bb5fe5fb5df6d8400998094fb1b32a178a47c3a1/contracts/StorageAccessible.sol>.
-     *      ⚠️⚠️⚠️ This function assumes the caller is a Safe contract is only intended for being used as a fallback handler for a {Safe}.
-     *      Using it in other ways may cause undefined behavior. ⚠️⚠️⚠️
+     *      ⚠️⚠️⚠️ This function assumes the caller is a Safe contract and is only intended to be used as a fallback handler for a {Safe}.
+     *      Using it in other ways may cause undefined behaviour. ⚠️⚠️⚠️
      * @param targetContract Address of the contract containing the code to execute.
      * @param calldataPayload Calldata that should be sent to the target contract (encoded method name and arguments).
      */

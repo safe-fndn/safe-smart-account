@@ -73,7 +73,7 @@ abstract contract SignatureVerifierMuxer is ExtensibleBase, ERC1271, ISignatureV
 
     /**
      * Setter for the signature muxer
-     * @param domainSeparator The domainSeparator authorised for the `ISafeSignatureVerifier`
+     * @param domainSeparator The domainSeparator authorized for the `ISafeSignatureVerifier`
      * @param newVerifier A contract that implements `ISafeSignatureVerifier`
      */
     function setDomainVerifier(bytes32 domainSeparator, ISafeSignatureVerifier newVerifier) public override onlySelf {
@@ -127,7 +127,7 @@ abstract contract SignatureVerifierMuxer is ExtensibleBase, ERC1271, ISignatureV
 
                     // Check that the signature is valid for the domain.
                     if (keccak256(EIP712.encodeMessageData(domainSeparator, typeHash, encodeData)) == _hash) {
-                        // Preserving the context, call the Safe's authorised `ISafeSignatureVerifier` to verify.
+                        // Preserving the context, call the Safe's authorized `ISafeSignatureVerifier` to verify.
                         return verifier.isValidSafeSignature(safe, sender, _hash, domainSeparator, typeHash, encodeData, payload);
                     }
                 }

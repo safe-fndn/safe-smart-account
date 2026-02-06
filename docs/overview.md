@@ -12,7 +12,7 @@ The Safe Protocol is a non-custodial set of smart contracts that allows users to
 **Executing a transaction**
 
 - To sign a transaction, the user generates a Safe transaction hash using the EIP-712 typed structured data hashing scheme.
-- The required amount of parties sign it either with a private key, on-chain approval or a smart contract wallet
+- The required amount of parties sign it either with a private key, on-chain approval, or a smart contract wallet
 - The user submits the transaction to the Safe account on-chain.
 
 **Updating the owner structure or policies**
@@ -20,7 +20,7 @@ The Safe Protocol is a non-custodial set of smart contracts that allows users to
 - The implementation contract has self-authorised (can be called by the Safe account itself) methods to update the owner structure or policies of the Safe account.
 
 **Signing a message**
-The message can be signed two ways on-chain and off-chain.
+The message can be signed in two ways: on-chain and off-chain.
 
 - On-chain signing:
     - The user generates a Safe message hash using the EIP-712 typed structured data hashing scheme.
@@ -37,15 +37,15 @@ The message can be signed two ways on-chain and off-chain.
 
 Modules add additional functionalities to the Safe Smart Account contracts. They are smart contracts that implement the Safe’s functionality while separating module logic from the Safe’s core contract.
 
-A basic Safe does not require any modules. Adding and removing a module requires confirmation from all owners. Events are emitted whenever a module is added or removed and also whenever a module transaction is successful or failed.
+A basic Safe does not require any modules. Adding and removing a module requires confirmation from all owners. Events are emitted whenever a module is added or removed and also whenever a module transaction succeeds or fails.
 
 > ⚠️ WARNING: Modules are a security risk since they can execute arbitrary transactions,
-> so only trusted and audited modules should be added to a Safe. A malicious module can completely takeover a Safe
+> so only trusted and audited modules should be added to a Safe. A malicious module can completely take over a Safe
 
 #### Transaction guards
 
 Transaction guards can make checks before and after a Safe transaction.
-The check before a transaction can e.g. programmatically check all of the parameters of the respective transaction prior to execution. The check after a transaction execution can be used to e.g. perform checks on the final state of the Safe.
+The pre-transaction check can, for example, validate all parameters of the transaction before execution. The post-transaction check can, for example, perform checks on the final state of the Safe.
 
 > ⚠️ IMPORTANT: Since a guard has full power to block Safe transaction execution,
 > a broken guard can cause a denial of service for the Safe. Make sure to carefully audit the guard code and design recovery mechanisms.
@@ -125,14 +125,14 @@ The linked list head and tail are the 0x1 address. The head and tail are never r
 
 #### Module Management
 
-Owners are managed in the `ModuleManager` contract. It uses a linked list to store the modules because the EVM bytecode `solc` generates for a dynamic array is not the most efficient.
+Modules are managed in the `ModuleManager` contract. It uses a linked list to store the modules because the EVM bytecode `solc` generates for a dynamic array is not the most efficient.
 
 The linked list head and tail are the 0x1 address. The head and tail are never removed from the list. The head and tail are never modules.
 
 #### Transaction execution
 
 The method `execTransaction` in the Safe.sol contract is the main entry point for executing transactions.
-It takes the transaction parameters and nonce/chain id from the chain, generates the Safe transaction hash and verifies the signatures.
+It takes the transaction parameters and nonce/chain ID from the chain, generates the Safe transaction hash and verifies the signatures.
 
 If a transaction guard is set, it forwards the transaction to the guard for additional checks. If the guard check passes, it executes the transaction. After the transaction is executed, it forwards the hash and success boolean to the guard.
 

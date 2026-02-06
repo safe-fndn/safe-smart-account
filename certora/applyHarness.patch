@@ -1,10 +1,10 @@
 diff -druN Safe.sol Safe.sol
---- Safe.sol	2025-07-10 14:37:56.013460475 +0200
-+++ Safe.sol	2025-07-10 14:38:49.982525739 +0200
-@@ -97,22 +97,25 @@
+--- Safe.sol	2026-02-06 13:40:42.152881873 +0000
++++ Safe.sol	2026-02-06 14:06:14.445271268 +0000
+@@ -99,22 +99,25 @@
      constructor() {
          // By setting the threshold it is not possible to call setup anymore, so we create a Safe with 0 owners and threshold 1.
-         // This is an unusable Safe, perfect for the singleton
+         // This is an unusable Safe, perfect for the singleton.
 -        threshold = 1;
 +        // threshold = 1; MUNGED: remove and add to constructor of the harness
      }
@@ -31,7 +31,7 @@ diff -druN Safe.sol Safe.sol
          // Emit the setup event optimistically. This ensures that changes such as `addOwner` and `changeThreshold` that are part
          // of the  `to.delegatecall(data)` that happen in the `setupModules` call emit events in order relative to the setup
          // event, making it easier for off-chain indexers to reliably reconstruct the Safe configuration.
-@@ -428,9 +431,6 @@
+@@ -473,9 +476,6 @@
          /* solhint-enable no-inline-assembly */
      }
  
@@ -41,7 +41,7 @@ diff -druN Safe.sol Safe.sol
      function getTransactionHash(
          address to,
          uint256 value,
-@@ -442,7 +442,9 @@
+@@ -487,7 +487,9 @@
          address gasToken,
          address refundReceiver,
          uint256 _nonce
@@ -52,7 +52,7 @@ diff -druN Safe.sol Safe.sol
          bytes32 domainHash = domainSeparator();
  
          // We opted for using assembly code here, because the way Solidity compiler we use (0.7.6) allocates memory is
-@@ -498,7 +500,8 @@
+@@ -543,7 +545,8 @@
              // Store the domain separator.
              mstore(add(ptr, 32), domainHash)
              // Calculate the hash.
@@ -63,8 +63,8 @@ diff -druN Safe.sol Safe.sol
          /* solhint-enable no-inline-assembly */
      }
 diff -druN base/Executor.sol base/Executor.sol
---- base/Executor.sol	2025-07-10 14:38:24.919495426 +0200
-+++ base/Executor.sol	2025-07-10 14:38:49.958598177 +0200
+--- base/Executor.sol	2026-02-06 12:53:03.461069552 +0000
++++ base/Executor.sol	2026-02-06 14:01:33.408506561 +0000
 @@ -27,12 +27,8 @@
          uint256 txGas
      ) internal returns (bool success) {
@@ -81,8 +81,8 @@ diff -druN base/Executor.sol base/Executor.sol
              /* solhint-disable no-inline-assembly */
              /// @solidity memory-safe-assembly
 diff -druN base/FallbackManager.sol base/FallbackManager.sol
---- base/FallbackManager.sol	2025-07-10 14:38:33.116505339 +0200
-+++ base/FallbackManager.sol	2025-07-10 14:38:49.980525737 +0200
+--- base/FallbackManager.sol	2025-10-06 09:25:19.430088428 +0000
++++ base/FallbackManager.sol	2026-02-06 14:01:33.409297118 +0000
 @@ -61,7 +61,8 @@
              // at memory offset 0x40 intact, not going beyond the scratch space, etc).
              // See: <https://docs.soliditylang.org/en/latest/assembly.html#memory-safety>
@@ -94,8 +94,8 @@ diff -druN base/FallbackManager.sol base/FallbackManager.sol
              if iszero(handler) {
                  return(0, 0)
 diff -druN interfaces/ISafe.sol interfaces/ISafe.sol
---- interfaces/ISafe.sol	2025-07-10 14:38:45.096519828 +0200
-+++ interfaces/ISafe.sol	2025-07-10 14:38:49.982368113 +0200
+--- interfaces/ISafe.sol	2026-02-06 12:53:03.465069534 +0000
++++ interfaces/ISafe.sol	2026-02-06 14:01:33.409988048 +0000
 @@ -155,7 +155,7 @@
       */
      function domainSeparator() external view returns (bytes32);

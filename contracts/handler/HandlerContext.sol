@@ -16,7 +16,7 @@ abstract contract HandlerContext {
     /**
      * @notice A modifier that reverts if not called by a Safe as a fallback handler.
      * @dev Note that this modifier does a **best effort** attempt at not allowing calls that are
-     *      not as a fallback call, but it still can be tricked. It is suitable for use cases such
+     *      not as a fallback call, but it can still be tricked. It is suitable for use cases such as
      *      making a best effort attempt to disallow ERC-721 and ERC-1155 token transfers to the
      *      fallback handler contract.
      */
@@ -26,8 +26,8 @@ abstract contract HandlerContext {
     }
 
     /**
-     * @dev Implementation of the {onlySafeFallback} modifier that checks whether the current call is a fallback from a Safe
-     *      fallback call, and the contract is not called directly. Note that this is only a **best
+     * @dev Implementation of the {onlySafeFallback} modifier that checks whether the current call is a fallback call from a
+     *      Safe, and that the contract is not called directly. Note that this is only a **best
      *      effort** check and may generate false positives under certain conditions.
      */
     function _requireFallback() internal view {

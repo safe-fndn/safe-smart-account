@@ -98,7 +98,7 @@ contract Safe is
      */
     constructor() {
         // By setting the threshold it is not possible to call setup anymore, so we create a Safe with 0 owners and threshold 1.
-        // This is an unusable Safe, perfect for the singleton
+        // This is an unusable Safe, perfect for the singleton.
         threshold = 1;
     }
 
@@ -123,11 +123,11 @@ contract Safe is
         // `setupOwners` checks if the `threshold` is already set, therefore preventing this method from being called more than once.
         setupOwners(_owners, _threshold);
         if (fallbackHandler != address(0)) internalSetFallbackHandler(fallbackHandler);
-        // As `setupOwners` can only be called if the contract has not been initialized we don't need a check for `setupModules`.
+        // As `setupOwners` can only be called if the contract has not been initialized, we don't need a check for `setupModules`.
         setupModules(to, data);
 
         if (payment > 0) {
-            // To avoid running into issues with EIP-170 we reuse the `handlePayment` function (to avoid adjusting code that has been verified we do not adjust the method itself):
+            // To avoid running into issues with EIP-170, we reuse the `handlePayment` function (to avoid adjusting code that has been verified we do not adjust the method itself):
             // `baseGas = 0`, `gasPrice = 1` and `gas = payment`, therefore: `amount = (payment + 0) * 1 = payment`.
             handlePayment(payment, 0, 1, paymentToken, paymentReceiver);
         }
@@ -362,7 +362,7 @@ contract Safe is
 
                 // Check that the additional signature data required for `secp256r1` verification is correctly encoded.
                 // That is, the data pointer `s` must be past the "static part" of the signature (just like for contract
-                // signatures), and additionally there must be at least 128 bytes of data containing the siguature `r`
+                // signatures), and additionally there must be at least 128 bytes of data containing the signature `r`
                 // and `s` values followed by the public key coordinates.
                 if (uint256(s) < requiredSignatures.mul(65)) revertWithError("GS021");
                 if (uint256(s).add(128) > signatures.length) revertWithError("GS027");

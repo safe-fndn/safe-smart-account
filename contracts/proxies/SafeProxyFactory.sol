@@ -104,7 +104,7 @@ contract SafeProxyFactory {
 
     /**
      * @notice Deploys a new chain-specific proxy with `_singleton` singleton and `saltNonce` salt. Optionally executes an initializer call to a new proxy.
-     * @dev Allows the creation of a new proxy contract that should exist only on a single network (e.g. specific governance or admin accounts)
+     * @dev Allows the creation of a new proxy contract that should exist only on a single network (e.g. specific governance or admin accounts),
      *      by including the chain ID in the `CREATE2` salt. Such proxies cannot be created to the same address on other networks by replaying the transaction.
      * @param _singleton Address of singleton contract. Must be deployed at the time of execution.
      * @param initializer Payload for a message call to be sent to a new proxy contract.
@@ -115,7 +115,7 @@ contract SafeProxyFactory {
         bytes memory initializer,
         uint256 saltNonce
     ) public returns (SafeProxy proxy) {
-        // If the initializer changes the proxy address should change too. Hashing the initializer data is cheaper than just concatenating it
+        // If the initializer changes, the proxy address should change too. Hashing the initializer data is cheaper than just concatenating it
         bytes32 salt = keccak256(abi.encodePacked(keccak256(initializer), saltNonce, getChainId()));
         proxy = deployProxy(_singleton, initializer, salt);
         emit ProxyCreation(proxy, _singleton);
@@ -123,8 +123,8 @@ contract SafeProxyFactory {
 
     /**
      * @notice Deploys a new chain-specific proxy with `_singleton` singleton and `saltNonce` salt. Optionally executes an initializer call to a new proxy.
-     * @dev Allows to create a new proxy contract that should exist only on 1 network (e.g. specific governance or admin accounts)
-     *      by including the chain id in the create2 salt. Such proxies cannot be created on other networks by replaying the transaction.
+     * @dev Allows the creation of a new proxy contract that should exist only on 1 network (e.g. specific governance or admin accounts)
+     *      by including the chain ID in the CREATE2 salt. Such proxies cannot be created on other networks by replaying the transaction.
      *      Emits an extra event to allow tracking of `initializer` and `saltNonce`.
      * @param _singleton Address of singleton contract. Must be deployed at the time of execution.
      * @param initializer Payload for a message call to be sent to a new proxy contract.

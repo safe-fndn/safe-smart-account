@@ -32,7 +32,7 @@ contract SafeToL2Setup is SafeStorage {
     }
 
     /**
-     * @notice Modifier ensure a function is only called via `DELEGATECALL`. Will revert otherwise.
+     * @notice Modifier ensures a function is only called via `DELEGATECALL`. Will revert otherwise.
      */
     modifier onlyDelegateCall() {
         require(address(this) != SELF, "SafeToL2Setup should only be called via delegatecall");
@@ -57,8 +57,8 @@ contract SafeToL2Setup is SafeStorage {
     }
 
     /**
-     * @notice Setup the Safe with the provided L2 singleton if needed.
-     * @dev This function checks that the chain ID is not 1, and if it isn't updates the singleton
+     * @notice Sets up the Safe with the provided L2 singleton if needed.
+     * @dev This function checks that the chain ID is not 1 and, if it isn't, updates the singleton
      *      to the provided L2 singleton.
      */
     function setupToL2(address l2Singleton) external onlyDelegateCall onlyNonceZero onlyContract(l2Singleton) {

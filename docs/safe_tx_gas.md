@@ -1,14 +1,14 @@
 ### Safe Transaction Gas Limit (safeTxGas)
 
-In this document we describe the behaviour of the internal gas limit (aka `safeTxGas`) for the [1.3.0](https://github.com/safe-global/safe-smart-account/releases/tag/v1.3.0-libs.0) version of the Safe Smart Account.
+In this document, we describe the behaviour of the internal gas limit (aka `safeTxGas`) for the [1.3.0](https://github.com/safe-global/safe-smart-account/releases/tag/v1.3.0-libs.0) version of the Safe Smart Account.
 
-There have been changes to this behaviour with the [1.3.0](https://github.com/safe-global/safe-smart-account/blob/main/CHANGELOG.md#version-130) version of the Safe contract (see [#274](https://github.com/safe-global/safe-smart-account/issues/274))
+There have been changes to this behaviour with the [1.3.0](https://github.com/safe-global/safe-smart-account/blob/main/CHANGELOG.md#version-130) version of the Safe contract (see [#274](https://github.com/safe-global/safe-smart-account/issues/274)).
 
 The behaviour of `safeTxGas` depends on the `gasPrice` value of the Safe transaction.
 
 #### With gas refund
 
-If `gasPrice` is set to a value `>0` the Safe Smart Account will issue a refund for the gas costs incurred during the execution of the Safe transaction. An example where this can be used is the relayers. These would execute the Safe transaction after it has been signed by the owners and then would get refunded for the execution.
+If `gasPrice` is set to a value `> 0`, the Safe Smart Account will issue a refund for the gas costs incurred during the execution of the Safe transaction. An example where this can be used is relayers. These would execute the Safe transaction after it has been signed by the owners and then would get refunded for the execution.
 
 The logic for this can be seen in [`Safe.sol`](https://github.com/safe-global/safe-smart-account/blob/c85741a6cda020cce3bc523c169909318717736f/contracts/Safe.sol#L191-L193):
 
@@ -28,7 +28,7 @@ This also results in the `nonce` of this transaction being used, so it is not po
 
 If `gasPrice` is set to `0` then the Safe Smart Account will **not** issue a refund after the Safe transaction execution.
 
-Therefore it is not necessary to be as strict on the gas being passed along with the execution of the Safe transaction. As no refund is triggered the Safe will not pay for the execution costs, the Safe Smart Account will send along all available gas when no refund is used.
+Therefore it is not necessary to be as strict on the gas being passed along with the execution of the Safe transaction. As no refund is triggered, the Safe will not pay for the execution costs, the Safe Smart Account will send along all available gas when no refund is used.
 
 Before execution, the Safe Smart Account always checks if enough gas is available to satisfy the `safeTxGas`. This can be seen in [`Safe.sol`](https://github.com/safe-global/safe-smart-account/blob/c85741a6cda020cce3bc523c169909318717736f/contracts/Safe.sol#L168-L169):
 
@@ -36,13 +36,13 @@ Before execution, the Safe Smart Account always checks if enough gas is availabl
 require(gasleft() >= ((safeTxGas * 64) / 63).max(safeTxGas + 2500) + 500, "GS010");
 ```
 
-**Therefore the `safeTxGas` behaves like a "minimum" gas value, that needs to be available, when it is set to a value > 0**
+**Therefore the `safeTxGas` behaves like a "minimum" gas value that needs to be available when it is set to a value > 0**
 
 If the Safe transaction fails (e.g. because of a revert in the target contract or out of gas) the Safe contract will "catch" the error and still increase the `nonce` so that the transaction cannot be tried again.
 
 This essentially means if you set a `safeTxGas` that is too low, your transaction might fail with "Out of Gas" and it is not possible to retry the same transaction, therefore it is important to set a correct `safeTxGas` value.
 
-Most wallets will estimate Ethereum transaction by checking with what gas limit the transaction does not revert. As the Safe Smart Account contracts will "catch" the internal revert, most wallets will estimate the gas limit to the minimum value required to satisfy the `safeTxGas`. This makes it very important to correctly estimate the `safeTxGas` value.
+Most wallets will estimate an Ethereum transaction by checking with what gas limit the transaction does not revert. As the Safe Smart Account contracts will "catch" the internal revert, most wallets will estimate the gas limit to the minimum value required to satisfy the `safeTxGas`. This makes it very important to correctly estimate the `safeTxGas` value.
 
 To make it easier to set the `safeTxGas` value a change has been made with the 1.3.0 version of the Safe Smart Account contracts:
 
@@ -65,7 +65,7 @@ if (!success && safeTxGas == 0 && gasPrice == 0) {
 
 As this also means that the `nonce` for this transaction is **not** used, **it is possible to retry the transaction in the future**.
 
-This logic also improves how the default Ethereum gas estimation works for Safe transaction executions. As the Safe contract reverts if the internal Safe transactions fails (e.g. because of a revert in the target contract or out of gas) the Wallet will propose a gas limit high enough to ensure that internal Safe transaction is successful or the wallet will display an error that the gas limit for the transaction could not be estimated.
+This logic also improves how the default Ethereum gas estimation works for Safe transaction executions. As the Safe contract reverts if the internal Safe transaction fails (e.g. because of a revert in the target contract or out of gas), the wallet will propose a gas limit high enough to ensure that the internal Safe transaction is successful or the wallet will display an error that the gas limit for the transaction could not be estimated.
 
 It is potentially dangerous to have a signed, but unexecuted, Safe transaction sitting around. To cancel such a transaction it is necessary to execute another Safe transaction with the same `nonce` (e.g. a Safe transaction to the Safe itself with `value = 0`, `data = '0x'` and `operation = 0`).
 
