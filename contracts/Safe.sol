@@ -362,7 +362,7 @@ contract Safe is
 
                 // Check that the additional signature data required for `secp256r1` verification is correctly encoded.
                 // That is, the data pointer `s` must be past the "static part" of the signature (just like for contract
-                // signatures), and additionally there must be at least 128 bytes of data containing the siguature `r`
+                // signatures), and additionally there must be at least 128 bytes of data containing the signature `r`
                 // and `s` values followed by the public key coordinates.
                 if (uint256(s) < requiredSignatures.mul(65)) revertWithError("GS021");
                 if (uint256(s).add(128) > signatures.length) revertWithError("GS027");
