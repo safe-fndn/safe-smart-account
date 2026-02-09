@@ -81,7 +81,7 @@ export const safeApproveHash = async (
     skipOnChainApproval?: boolean,
 ): Promise<SafeSignature> => {
     if (!skipOnChainApproval) {
-        if (!signer.provider) throw Error("Provider required for on-chain approval");
+        if (!signer.provider) throw Error("Provider required for onchain approval");
         const chainId = (await signer.provider.getNetwork()).chainId;
         const safeAddress = await safe.getAddress();
         const typedDataHash = calculateSafeTransactionHash(safeAddress, safeTx, chainId);
@@ -149,8 +149,8 @@ export const buildSignatureBytes = (signatures: SafeSignature[]): string => {
     let dynamicBytes = "";
     for (const sig of signatures) {
         if (sig.dynamic) {
-            /* 
-                A contract signature has a static part of 65 bytes and the dynamic part that needs to be appended 
+            /*
+                A contract signature has a static part of 65 bytes and the dynamic part that needs to be appended
                 at the end of signature bytes.
                 The signature format is
                 Signature type == 0

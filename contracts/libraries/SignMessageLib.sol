@@ -6,7 +6,7 @@ import {SafeStorage} from "./SafeStorage.sol";
 
 /**
  * @title Sign Message Library
- * @notice Sign messages on-chain.
+ * @notice Sign messages onchain.
  * @author Richard Meissner - @rmeissner
  */
 contract SignMessageLib is SafeStorage {
@@ -17,7 +17,7 @@ contract SignMessageLib is SafeStorage {
     bytes32 private constant SAFE_MSG_TYPEHASH = 0x60b3cbf8b4a223d68d641b3b6ddf9a298e7f33710cf3d3a9d1146b5a6150fbca;
 
     /**
-     * @notice A Safe message was signed on-chain.
+     * @notice A Safe message was signed onchain.
      * @param msgHash The hash of the message.
      */
     event SignMsg(bytes32 indexed msgHash);

@@ -211,7 +211,7 @@ describe("Safe", () => {
             ).to.emit(safe, "ExecutionSuccess");
         });
 
-        it("if not msg.sender on-chain approval is required", async () => {
+        it("if not msg.sender onchain approval is required", async () => {
             const {
                 safe,
                 signers: [user1, user2],
@@ -397,7 +397,7 @@ describe("Safe", () => {
             );
         });
 
-        it("if not msg.sender on-chain approval is required", async () => {
+        it("if not msg.sender onchain approval is required", async () => {
             const {
                 safe,
                 signers: [user1, user2],
@@ -787,7 +787,7 @@ describe("Safe", () => {
             await expect(safe["checkSignatures(bytes32,bytes,bytes)"](txHash, txHashData, signatures)).to.be.revertedWith("GS026");
         });
 
-        it("if not msg.sender on-chain approval is required", async () => {
+        it("if not msg.sender onchain approval is required", async () => {
             const {
                 safe,
                 signers: [user1, user2],
@@ -958,7 +958,7 @@ describe("Safe", () => {
             );
         });
 
-        it("if not msg.sender on-chain approval is required", async () => {
+        it("if not msg.sender onchain approval is required", async () => {
             const {
                 safe,
                 signers: [user1, user2],
@@ -1191,7 +1191,7 @@ describe("Safe", () => {
             await expect(safe["checkNSignatures(bytes32,bytes,bytes,uint256)"](txHash, "0x", signatures, 1)).to.be.revertedWith("GS026");
         });
 
-        it("if not msg.sender on-chain approval is required", async () => {
+        it("if not msg.sender onchain approval is required", async () => {
             const {
                 safe,
                 signers: [user1, user2],

@@ -117,7 +117,7 @@ contract Safe is
     ) external override {
         // Emit the setup event optimistically. This ensures that changes such as `addOwner` and `changeThreshold` that are part
         // of the  `to.delegatecall(data)` that happen in the `setupModules` call emit events in order relative to the setup
-        // event, making it easier for off-chain indexers to reliably reconstruct the Safe configuration.
+        // event, making it easier for offchain indexers to reliably reconstruct the Safe configuration.
         emit SafeSetup(msg.sender, _owners, _threshold, to, fallbackHandler);
 
         // `setupOwners` checks if the `threshold` is already set, therefore preventing this method from being called more than once.

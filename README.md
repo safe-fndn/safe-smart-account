@@ -92,7 +92,7 @@ Note: This will result in different addresses compared to hardhat's default dete
 
 ### Verify contract
 
-This command will use the deployment artifacts to compile the contracts and compare them to the on-chain code
+This command will use the deployment artifacts to compile the contracts and compare them to the onchain code
 
 ```bash
 npx hardhat --network <network> local-verify

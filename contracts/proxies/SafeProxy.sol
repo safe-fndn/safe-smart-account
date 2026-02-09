@@ -4,7 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 /**
  * @title Proxy Interface
- * @notice Helper interface to access the singleton address of the Proxy on-chain.
+ * @notice Helper interface to access the singleton address of the Proxy onchain.
  * @author Richard Meissner - @rmeissner
  */
 interface IProxy {

@@ -54,7 +54,7 @@ To be able to use `eth_sign` we need to take the parameters `r`, `s` and `v` fro
 
 **Signature data** - Signature bytes that are verified by the signature verifier
 
-The method `signMessage` can be used to mark a message as signed on-chain.
+The method `signMessage` can be used to mark a message as signed onchain.
 
 #### Pre-Validated Signatures
 

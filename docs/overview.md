@@ -12,21 +12,21 @@ The Safe Protocol is a non-custodial set of smart contracts that allows users to
 **Executing a transaction**
 
 - To sign a transaction, the user generates a Safe transaction hash using the EIP-712 typed structured data hashing scheme.
-- The required amount of parties sign it either with a private key, on-chain approval, or a smart contract wallet
-- The user submits the transaction to the Safe account on-chain.
+- The required amount of parties sign it either with a private key, onchain approval, or a smart contract wallet
+- The user submits the transaction to the Safe account onchain.
 
 **Updating the owner structure or policies**
 
 - The implementation contract has self-authorised (can be called by the Safe account itself) methods to update the owner structure or policies of the Safe account.
 
 **Signing a message**
-The message can be signed in two ways: on-chain and off-chain.
+The message can be signed in two ways: onchain and offchain.
 
-- On-chain signing:
+- Onchain signing:
     - The user generates a Safe message hash using the EIP-712 typed structured data hashing scheme.
     - The user submits a delegatecall transaction to `SignMessageLib` contract to mark the hash as signed.
     - The hash now can be verified through the EIP-1271 interface.
-- Off-chain signing:
+- Offchain signing:
     - The user generates a Safe message hash using the EIP-712 typed structured data hashing scheme.
     - The user signs the message hash with a private key or a smart contract wallet.
     - The signature now can be verified through the EIP-1271 interface.
