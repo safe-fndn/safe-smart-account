@@ -7,17 +7,8 @@
 
 ##### Notes
 
-Certora
-
-The final audit was performed on commit [1c8b24a0a438e8c2cd089a9d830d1688a47a28d5](https://github.com/safe-global/safe-smart-account/tree/1c8b24a0a438e8c2cd089a9d830d1688a47a28d5).
-
-There have been a few bug fixes and gas-optimisation changes.
-
-Ackee
-
-The final audit was performed on commit [5d26505388e9ee014ad9ac497aa48e3a13426eb1](https://github.com/safe-global/safe-smart-account/tree/5d26505388e9ee014ad9ac497aa48e3a13426eb1).
-
-There have been a few bug fixes and gas-optimisation changes.
+- Certora: The final audit was performed on commit [1c8b24a0a438e8c2cd089a9d830d1688a47a28d5](https://github.com/safe-global/safe-smart-account/tree/1c8b24a0a438e8c2cd089a9d830d1688a47a28d5).
+- Ackee: The final audit was performed on commit [5d26505388e9ee014ad9ac497aa48e3a13426eb1](https://github.com/safe-global/safe-smart-account/tree/5d26505388e9ee014ad9ac497aa48e3a13426eb1).
 
 ##### Files
 
