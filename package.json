@@ -59,7 +59,7 @@
     "devDependencies": {
         "@eslint/js": "^9.39.1",
         "@noble/curves": "^2.0.1",
-        "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+        "@nomicfoundation/hardhat-toolbox": "^7.0.0",
         "@openzeppelin/contracts": "^3.4.2",
         "@safe-global/mock-contract": "^4.1.0",
         "@safe-global/safe-singleton-factory": "^2.0.0",
@@ -75,7 +75,7 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-no-only-tests": "^3.3.0",
         "eslint-plugin-prettier": "^5.5.4",
-        "hardhat": "^2.27.0",
+        "hardhat": "^3.1.12",
         "hardhat-deploy": "^1.0.4",
         "husky": "^9.1.7",
         "prettier": "^3.6.2",
