@@ -46,9 +46,9 @@ contract TokenCallbackHandler is HandlerContext, ERC1155TokenReceiver, ERC777Tok
     /**
      * @inheritdoc ERC777TokensRecipient
      * @dev Account that wishes to receive the tokens also needs to register the implementer (this contract) via the ERC-1820 interface registry.
-     *      From the standard: "This is done by calling the setInterfaceImplementer function on the ERC-1820 registry with the holder address as
-     *      the address, the keccak256 hash of ERC777TokensSender (0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895) as the
-     *      interface hash, and the address of the contract implementing the ERC777TokensSender as the implementer."
+     *      From the standard: "This is done by calling the setInterfaceImplementer function on the ERC-1820 registry with the recipient address as
+     *      the address, the keccak256 hash of ERC777TokensRecipient (0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b) as the
+     *      interface hash, and the address of the contract implementing the ERC777TokensRecipient as the implementer."
      */
     function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata) external pure override {
         // We implement this for completeness, doesn't really have any value
