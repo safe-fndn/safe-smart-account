@@ -28,10 +28,21 @@ interface IFallbackManager {
     /**
      * @notice Forwards all calls to the fallback handler if set.
      *         Returns empty data if no handler is set.
-     * @dev Appends the non-padded caller address to the calldata to be optionally used in the handler
-     *      The handler can make use of {HandlerContext} to extract the address.
-     *      This is done because in the next call frame the `msg.sender` will be {FallbackManager}'s address
-     *      and having the original caller address may enable additional verification scenarios.
+     * @dev The call to the handler is made via the `CALL` opcode (not `DELEGATECALL`), so:
+     *      - In the handler's call frame, `msg.sender` is the Safe's own address, not the original external caller.
+     *      - The handler executes in its own storage context; it cannot read or write Safe storage directly.
+     *      - `CALL` is used intentionally to limit the attack surface: `DELEGATECALL` would execute handler code
+     *        in the Safe's storage context, giving the handler unrestricted write access to all Safe state.
+     *
+     *      ⚠️ IMPORTANT SECURITY NOTE: Because `msg.sender` equals the Safe address inside the handler, the
+     *      handler can take actions on behalf of the Safe in other contracts. For example, if the fallback
+     *      handler is set to a token contract, any external caller can trigger token operations
+     *      (e.g. `transfer`, `approve`) on behalf of the Safe. Only set trusted, purpose-built contracts as
+     *      fallback handlers and verify they do not expose state-changing functions that rely solely on
+     *      `msg.sender` for authorisation.
+     *
+     *      The original caller address is appended (non-padded) to the calldata before forwarding.
+     *      The handler can use {HandlerContext._msgSender()} to recover it. This pattern is based on ERC-2771.
      */
     fallback() external;
 }

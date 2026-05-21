@@ -141,3 +141,20 @@ If the refund parameter is set to true, the Safe will refund the gas costs to th
 #### Fallback contract
 
 A Fallback contract contains logic outside of the scope of the core Safe Smart Account, such as the token callback logic and/or logic that didn't fit into the core contracts because of bytecode size limitations.
+
+**How call forwarding works**
+
+When an unknown function selector (or empty calldata) is received by the Safe, the `FallbackManager` forwards the call to the configured fallback handler via the `CALL` opcode. The original caller's address is appended (non-padded) as the last 20 bytes of calldata before forwarding; fallback handlers that extend `HandlerContext` can recover this address via `_msgSender()`.
+
+**Why `CALL` instead of `DELEGATECALL`**
+
+`CALL` means the handler executes in its own storage context — it cannot read or write Safe storage directly. `DELEGATECALL` would run the handler's code inside the Safe's storage context, giving it unrestricted write access to every Safe state variable (owners, threshold, modules, guards). Using `CALL` is therefore a deliberate security boundary that isolates handler logic from core Safe state. Modules already support `DELEGATECALL` for cases where extending Safe storage is intentional and has been explicitly authorised by the owners.
+
+**Security implications of `msg.sender` rewriting**
+
+Inside the handler's call frame, `msg.sender` is the Safe's own address — not the original external caller. This has an important consequence: if the fallback handler is set to a contract that uses `msg.sender` for authorisation (e.g. an ERC-20 token), any external account can trigger operations on behalf of the Safe through the fallback path.
+
+> ⚠️ WARNING: Only set purpose-built, audited contracts as fallback handlers. Verify that the handler
+> does not expose state-changing entry points that authorise callers solely based on `msg.sender`.
+> A malicious or carelessly written fallback handler can drain Safe assets or manipulate Safe-held
+> positions in DeFi protocols.
