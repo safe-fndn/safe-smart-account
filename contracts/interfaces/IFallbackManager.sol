@@ -28,10 +28,25 @@ interface IFallbackManager {
     /**
      * @notice Forwards all calls to the fallback handler if set.
      *         Returns empty data if no handler is set.
-     * @dev Appends the non-padded caller address to the calldata to be optionally used in the handler
+     * @dev Appends the non-padded caller address to the calldata to be optionally used in the handler.
      *      The handler can make use of {HandlerContext} to extract the address.
      *      This is done because in the next call frame the `msg.sender` will be {FallbackManager}'s address
      *      and having the original caller address may enable additional verification scenarios.
+     *
+     *      ⚠️ **CALL vs DELEGATECALL**: The handler is invoked via `CALL`, not `DELEGATECALL`.
+     *      This means:
+     *      - The handler executes in its own storage context; it cannot directly read or modify Safe storage.
+     *      - Inside the handler, `msg.sender` equals the Safe's address (the {FallbackManager} contract).
+     *      - Any state changes the handler performs are scoped to the handler contract itself.
+     *
+     *      `DELEGATECALL` is intentionally avoided to prevent a handler from arbitrarily rewriting Safe
+     *      storage (owners, threshold, module list, etc.), which would be a critical security risk.
+     *      Opt-in delegate-call access is already available through the Safe module system.
+     *
+     *      Because `msg.sender` inside the handler is the Safe, callers should be aware that the handler
+     *      may act on the Safe's behalf within its own contract. For example, if the handler is a token
+     *      contract, any caller could trigger token operations that appear to originate from the Safe.
+     *      Always ensure the handler implements appropriate access controls for any state-mutating logic.
      */
     fallback() external;
 }
