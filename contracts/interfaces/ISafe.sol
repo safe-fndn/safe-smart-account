@@ -84,8 +84,9 @@ interface ISafe is INativeCurrencyPaymentFallback, IModuleManager, IGuardManager
         address payable paymentReceiver
     ) external;
 
-    /** @notice Executes a transaction with `operation` to the `to` address with a native token `value` with a `data` payload.
-     *          Pays `gasPrice * gasLimit` in `gasToken` token to the `refundReceiver`.
+    /**
+     * @notice Executes a transaction with `operation` to the `to` address with a native token `value` with a `data` payload.
+     *         Pays `gasPrice * gasLimit` in `gasToken` token to the `refundReceiver`.
      * @dev The fees are always transferred, even if the user transaction fails.
      *      This method doesn't perform any sanity check of the transaction, such as:
      *      - if the contract at `to` address has code or not
