@@ -154,7 +154,4 @@ When an unknown function selector (or empty calldata) is received by the Safe, t
 
 Inside the handler's call frame, `msg.sender` is the Safe's own address — not the original external caller. This has an important consequence: if the fallback handler is set to a contract that uses `msg.sender` for authorisation (e.g. an ERC-20 token), any external account can trigger operations on behalf of the Safe through the fallback path.
 
-> ⚠️ WARNING: Only set purpose-built, audited contracts as fallback handlers. Verify that the handler
-> does not expose state-changing entry points that authorise callers solely based on `msg.sender`.
-> A malicious or carelessly written fallback handler can drain Safe assets or manipulate Safe-held
-> positions in DeFi protocols.
+> ⚠️ WARNING: Only set purpose-built, audited contracts as fallback handlers. Verify that the handler does not expose state-changing entry points that authorise callers solely based on `msg.sender` A malicious or carelessly written fallback handler can drain Safe assets or manipulate Safe-held positions in DeFi protocols.
