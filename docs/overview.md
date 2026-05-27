@@ -144,7 +144,7 @@ A Fallback contract contains logic outside of the scope of the core Safe Smart A
 
 **How call forwarding works**
 
-When an unknown function selector (or empty calldata) is received by the Safe, the `FallbackManager` forwards the call to the configured fallback handler via the `CALL` opcode. The original caller's address is appended (non-padded) as the last 20 bytes of calldata before forwarding; fallback handlers that extend `HandlerContext` can recover this address via `_msgSender()`.
+When an unknown function selector (or empty calldata) is received by the Safe, the `FallbackManager` forwards the call to the configured fallback handler via the `CALL` opcode. The original caller's address is appended (non-padded) as the last 20 bytes of calldata before forwarding; fallback handlers that extend `HandlerContext` can recover this address via `_msgSender()` (following the [ERC-2771](https://eips.ethereum.org/EIPS/eip-2771) convention).
 
 **Why `CALL` instead of `DELEGATECALL`**
 
