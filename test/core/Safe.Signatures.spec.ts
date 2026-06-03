@@ -20,6 +20,7 @@ import {
     buildSignatureBytes,
 } from "../../src/utils/execution";
 import { chainId } from "../utils/encoding";
+import { revertingSignatureValidatorContract } from "../utils/contracts";
 
 describe("Safe", () => {
     const setupTests = hre.deployments.createFixture(async ({ deployments }) => {
@@ -510,7 +511,9 @@ describe("Safe", () => {
             } as const;
             const signatures = buildSignatureBytes([selfSignature]);
 
-            await expect(safe["checkSignatures(address,bytes32,bytes)"](user1.address, txHash, signatures)).to.be.revertedWith("GS025");
+            // The inner `isValidSignature` call reverts with GS025, but the parent Safe signature verification logic
+            // uses GS024 error codes for contract signature errors.
+            await expect(safe["checkSignatures(address,bytes32,bytes)"](user1.address, txHash, signatures)).to.be.revertedWith("GS024");
         });
 
         it("should allow for EIP-7702 delegated Safes to sign for themselves [@skip-on-coverage]", async () => {
@@ -1094,6 +1097,51 @@ describe("Safe", () => {
             const safeConnectUser2 = safe.connect(user2);
 
             await safeConnectUser2["checkNSignatures(address,bytes32,bytes,uint256)"](user1.address, txHash, signatures, 1);
+        });
+
+        it("should revert with GS024 if a contract owner's isValidSignature reverts", async () => {
+            const {
+                signers: [user1],
+            } = await setupTests();
+
+            const revertingValidator = await revertingSignatureValidatorContract(user1);
+            const revertingValidatorAddress = await revertingValidator.getAddress();
+
+            const safe = await getSafe({ owners: [revertingValidatorAddress], threshold: 1 });
+            const safeAddress = await safe.getAddress();
+            const tx = buildSafeTransaction({ to: safeAddress, nonce: await safe.nonce() });
+            const txHash = calculateSafeTransactionHash(safeAddress, tx, await chainId());
+
+            const contractSig = buildContractSignature(revertingValidatorAddress, "0x");
+            const signatures = buildSignatureBytes([contractSig]);
+
+            await expect(safe["checkNSignatures(address,bytes32,bytes,uint256)"](AddressZero, txHash, signatures, 1)).to.be.revertedWith(
+                "GS024",
+            );
+        });
+
+        it("should revert with GS024 if a non-owner contract's isValidSignature reverts", async () => {
+            const {
+                signers: [user1, user2],
+            } = await setupTests();
+
+            const revertingValidator = await revertingSignatureValidatorContract(user1);
+            const revertingValidatorAddress = await revertingValidator.getAddress();
+
+            // user2 is the only owner, the reverting contract is NOT an owner.
+            const safe = await getSafe({ owners: [user2.address], threshold: 1 });
+            const safeAddress = await safe.getAddress();
+            const tx = buildSafeTransaction({ to: safeAddress, nonce: await safe.nonce() });
+            const txHash = calculateSafeTransactionHash(safeAddress, tx, await chainId());
+
+            // validateContractSignature is called before the owner-membership check (GS026), so the
+            // revert is caught and surfaced as GS024 rather than bubbling up to the caller.
+            const contractSig = buildContractSignature(revertingValidatorAddress, "0x");
+            const signatures = buildSignatureBytes([contractSig]);
+
+            await expect(safe["checkNSignatures(address,bytes32,bytes,uint256)"](AddressZero, txHash, signatures, 1)).to.be.revertedWith(
+                "GS024",
+            );
         });
     });
 

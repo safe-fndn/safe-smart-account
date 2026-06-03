@@ -6,7 +6,13 @@ This changelog only contains changes starting from version 1.3.0
 
 ## Changes
 
-None.
+### General
+
+#### Do not propagate contract signature validation reverts
+
+Previously, a reverting `isValidSignature` call during contract signature validation in `checkNSignatures` would bubble up the revert to the caller. This allowed an attacker-controlled `owner` address to supply arbitrary revert data. The `checkNSignatures` call now reverts with a `GS024` error in case of a revert (the same error for an invalid signature).
+
+**Breaking change**: The return data from `isValidSignature` is now checked strictly. Previously, Solidity's ABI decoder would accept responses with dirty lower bits and additional trailing bytes. The new low-level call requires exactly 32 bytes of return data whose first 4 bytes equal `EIP1271_MAGIC_VALUE` (`0x1626ba7e`) with the remaining 28 bytes zero-padded.
 
 # Version 1.5.0
 

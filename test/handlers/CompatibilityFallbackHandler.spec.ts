@@ -11,7 +11,7 @@ import {
     signHash,
 } from "../../src/utils/execution";
 import { chainId } from "../utils/encoding";
-import { badSimulatorContract, killLibContract } from "../utils/contracts";
+import { badSimulatorContract, killLibContract, revertingSignatureValidatorContract } from "../utils/contracts";
 
 describe("CompatibilityFallbackHandler", () => {
     const setupTests = hre.deployments.createFixture(async ({ deployments }) => {
@@ -227,6 +227,57 @@ describe("CompatibilityFallbackHandler", () => {
 
             const signatures = buildSignatureBytes([user1Signature, user2Signature]);
             await expect(validator.connect(user1).isValidSignature.staticCall(dataHash, signatures)).to.be.reverted;
+        });
+
+        it("should revert with GS024 if a contract owner's isValidSignature reverts", async () => {
+            const {
+                handler,
+                signers: [user1],
+            } = await setupTests();
+            const handlerAddress = await handler.getAddress();
+            const dataHash = ethers.keccak256("0xbaddad");
+
+            // Deploy a contract whose isValidSignature always reverts.
+            const revertingValidator = await revertingSignatureValidatorContract(user1);
+            const revertingValidatorAddress = await revertingValidator.getAddress();
+
+            // Create a Safe where the reverting contract is the sole owner.
+            const testSafe = await getSafe({ owners: [revertingValidatorAddress], threshold: 1, fallbackHandler: handlerAddress });
+            const testSafeAddress = await testSafe.getAddress();
+            const testValidator = await getCompatFallbackHandler(testSafeAddress);
+
+            // Build a contract signature pointing to the reverting owner.
+            const contractSig = buildContractSignature(revertingValidatorAddress, "0x");
+            const signatures = buildSignatureBytes([contractSig]);
+
+            // The revert from isValidSignature is caught by validateContractSignature and surfaced as GS024.
+            await expect(testValidator.isValidSignature.staticCall(dataHash, signatures)).to.be.revertedWith("GS024");
+        });
+
+        it("should revert with GS024 if a non-owner contract's isValidSignature reverts", async () => {
+            const {
+                handler,
+                signers: [user1],
+            } = await setupTests();
+            const handlerAddress = await handler.getAddress();
+            const dataHash = ethers.keccak256("0xbaddad");
+
+            // Deploy a contract whose isValidSignature always reverts.
+            const revertingValidator = await revertingSignatureValidatorContract(user1);
+            const revertingValidatorAddress = await revertingValidator.getAddress();
+
+            // Create a Safe where user1 is the only owner, the reverting contract is NOT an owner.
+            const testSafe = await getSafe({ owners: [user1.address], threshold: 1, fallbackHandler: handlerAddress });
+            const testSafeAddress = await testSafe.getAddress();
+            const testValidator = await getCompatFallbackHandler(testSafeAddress);
+
+            // Build a contract signature pointing to the reverting non-owner.
+            // validateContractSignature is called before the owner-membership check (GS026), so the
+            // revert is caught and surfaced as GS024 rather than bubbling up to the caller.
+            const contractSig = buildContractSignature(revertingValidatorAddress, "0x");
+            const signatures = buildSignatureBytes([contractSig]);
+
+            await expect(testValidator.isValidSignature.staticCall(dataHash, signatures)).to.be.revertedWith("GS024");
         });
     });
 

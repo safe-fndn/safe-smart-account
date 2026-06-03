@@ -7,13 +7,13 @@ import {ModuleManager} from "./base/ModuleManager.sol";
 import {OwnerManager} from "./base/OwnerManager.sol";
 import {EIP7951} from "./common/EIP7951.sol";
 import {NativeCurrencyPaymentFallback} from "./common/NativeCurrencyPaymentFallback.sol";
+import {SecuredSignatureValidator} from "./common/SecuredSignatureValidator.sol";
 import {SecuredTokenTransfer} from "./common/SecuredTokenTransfer.sol";
 import {SignatureDecoder} from "./common/SignatureDecoder.sol";
 import {Singleton} from "./common/Singleton.sol";
 import {StorageAccessible} from "./common/StorageAccessible.sol";
 import {SafeMath} from "./external/SafeMath.sol";
 import {ISafe} from "./interfaces/ISafe.sol";
-import {ISignatureValidator, ISignatureValidatorConstants} from "./interfaces/ISignatureValidator.sol";
 import {Enum} from "./interfaces/Enum.sol";
 
 /**
@@ -44,7 +44,7 @@ contract Safe is
     OwnerManager,
     SignatureDecoder,
     SecuredTokenTransfer,
-    ISignatureValidatorConstants,
+    SecuredSignatureValidator,
     FallbackManager,
     StorageAccessible,
     EIP7951,
@@ -292,7 +292,7 @@ contract Safe is
         }
         /* solhint-enable no-inline-assembly */
 
-        if (ISignatureValidator(owner).isValidSignature(dataHash, contractSignature) != EIP1271_MAGIC_VALUE) revertWithError("GS024");
+        if (!validateContractSignature(owner, dataHash, contractSignature)) revertWithError("GS024");
     }
 
     /**

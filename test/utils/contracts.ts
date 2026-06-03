@@ -83,6 +83,17 @@ export const badSimulatorContract = async (deployer: Signer) => {
     return deployContractFromSource(deployer, badSimulatorSource);
 };
 
+export const revertingSignatureValidatorSource = `
+contract Test {
+    function isValidSignature(bytes32, bytes memory) external pure returns (bytes4) {
+        revert("isValidSignature reverted");
+    }
+}`;
+
+export const revertingSignatureValidatorContract = async (deployer: Signer) => {
+    return deployContractFromSource(deployer, revertingSignatureValidatorSource);
+};
+
 /**
  * Retrieves the sender address from the contract runner.
  * It is useful when using methods like `hre.ethers.getContractAt` which automatically attach
