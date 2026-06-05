@@ -10,7 +10,7 @@ import {ISignatureValidator, ISignatureValidatorConstants} from "../interfaces/I
 abstract contract SecuredSignatureValidator is ISignatureValidatorConstants {
     /**
      * @notice Validates an ERC-1271 contract signature, returning `true` if valid and `false` otherwise.
-     * @dev This method never reverts. A reverting or `isValidSignature` call is treated as an invalid
+     * @dev This method never reverts. A reverting `isValidSignature` call is treated as an invalid
      *      signature. Exactly 32 bytes must be returned equal to ABI-encoded {EIP1271_MAGIC_VALUE}.
      * @param owner The contract whose `isValidSignature` method is called.
      * @param dataHash The hash of the data that was signed.
