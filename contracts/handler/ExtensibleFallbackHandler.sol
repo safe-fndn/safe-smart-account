@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity >=0.7.0 <0.9.0;
 
-import {ERC165Handler} from "./extensible/ERC165Handler.sol";
+import {IERC165Handler, ERC165Handler} from "./extensible/ERC165Handler.sol";
 import {IFallbackHandler, FallbackHandler} from "./extensible/FallbackHandler.sol";
 import {ERC1271, ISignatureVerifierMuxer, SignatureVerifierMuxer} from "./extensible/SignatureVerifierMuxer.sol";
 import {ERC721TokenReceiver, ERC1155TokenReceiver, TokenCallbacks} from "./extensible/TokenCallbacks.sol";
@@ -23,7 +23,7 @@ contract ExtensibleFallbackHandler is FallbackHandler, SignatureVerifierMuxer, T
             interfaceId == type(ERC1155TokenReceiver).interfaceId ||
             interfaceId == type(ERC1271).interfaceId ||
             interfaceId == type(ISignatureVerifierMuxer).interfaceId ||
-            interfaceId == type(ERC165Handler).interfaceId ||
+            interfaceId == type(IERC165Handler).interfaceId ||
             interfaceId == type(IFallbackHandler).interfaceId;
     }
 }
