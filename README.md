@@ -114,7 +114,7 @@ npx hardhat --network <network> etherscan-verify
 
 - [for Version 1.5.0 by Certora & Ackee](docs/audit_1_5_0.md)
 - [for Version 1.4.0/1.4.1 by Ackee Blockchain](docs/audit_1_4_0.md)
-- [for Version 1.3.0 by G0 Group](docs/audit_1_3_0.md)
+- [for Version 1.3.0 by G0 Group, Certora & Nethermind](docs/audit_1_3_0.md)
 - [for Version 1.2.0 by G0 Group](docs/audit_1_2_0.md)
 - [for Version 1.1.1 by G0 Group](docs/audit_1_1_1.md)
 - [for Version 1.0.0 by Runtime Verification](docs/rv_1_0_0.md)
