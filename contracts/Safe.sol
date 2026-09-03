@@ -340,6 +340,12 @@ contract Safe is
                 // Here we only check that the pointer is not pointing inside the part that is being processed.
                 if (uint256(s) < requiredSignatures.mul(65)) revertWithError("GS021");
 
+                // Owner membership / ordering must be checked BEFORE the EIP-1271 staticcall.
+                // Otherwise an attacker-chosen `r` can force an external call (and unbounded returndata copy)
+                // to a non-owner contract before GS026 rejects it — gas/memory grief for integrators.
+                if (currentOwner <= lastOwner || owners[currentOwner] == address(0) || currentOwner == SENTINEL_OWNERS)
+                    revertWithError("GS026");
+
                 // The contract signature check is extracted to a separate function for better compatibility with formal verification
                 // A quote from the Certora team:
                 // "The assembly code broke the pointer analysis, which switched the prover in failsafe mode, where it is (a) much slower and (b) computes different hashes than in the normal mode."
