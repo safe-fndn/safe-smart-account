@@ -355,7 +355,7 @@ contract Safe is
                 // if `v` is 2, then we have a `secp256r1` signature that we verify using the RIP-7212/EIP-7951
                 // precompile. In this case, just like for `v = 0` contract signatures, `r` is the address of the owner,
                 // and the signature `r`, `s`, and public key coordinates `qx`, `qy` are pointed to by the data pointer
-                // `s`. This is very similiar to the smart contract signature encoding, but **without** a length, since
+                // `s`. This is very similar to the smart contract signature encoding, but **without** a length, since
                 // that is always fixed to 128 bytes. Just like for `secp256k1` EOA signatures, we do not enforce that
                 // `s` is on the lower half of the curve (i.e. the signature is malleable).
                 currentOwner = address(uint160(uint256(r)));
