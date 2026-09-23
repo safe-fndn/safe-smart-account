@@ -172,7 +172,7 @@ contract CompatibilityFallbackHandler is TokenCallbackHandler, ISignatureValidat
             returndatacopy(response, 0x20, responseEncodedSize)
 
             if iszero(mload(0x00)) {
-                revert(add(response, 0x20), responseEncodedSize)
+                revert(add(response, 0x20), mload(response))
             }
         }
         /* solhint-enable no-inline-assembly */

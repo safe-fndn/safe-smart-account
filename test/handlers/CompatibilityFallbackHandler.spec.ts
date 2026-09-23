@@ -349,6 +349,25 @@ describe("CompatibilityFallbackHandler", () => {
             );
         });
 
+        it("should propagate exact revert data", async () => {
+            const { validator, killLib } = await setupTests();
+            const killLibAddress = await killLib.getAddress();
+            const revertData = killLib.interface.encodeErrorResult("Error(string)", ["Why are you doing this?"]);
+            const error = await ethers.provider
+                .call({
+                    to: await validator.getAddress(),
+                    data: validator.interface.encodeFunctionData("simulate", [
+                        killLibAddress,
+                        killLib.interface.encodeFunctionData("trever"),
+                    ]),
+                })
+                .then(
+                    () => null,
+                    (err) => err,
+                );
+            expect(error?.data).to.be.eq(revertData);
+        });
+
         it("should simulate transaction", async () => {
             const { validator, killLib } = await setupTests();
             const validatorAddress = await validator.getAddress();
