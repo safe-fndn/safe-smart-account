@@ -14,6 +14,10 @@ Previously, a reverting `isValidSignature` call during contract signature valida
 
 **Breaking change**: The return data from `isValidSignature` is now checked strictly. Previously, Solidity's ABI decoder would accept responses with dirty lower bits and additional trailing bytes. The new low-level call requires exactly 32 bytes of return data whose first 4 bytes equal `EIP1271_MAGIC_VALUE` (`0x1626ba7e`) with the remaining 28 bytes zero-padded.
 
+#### Allow binding approved hash signatures to a specific hash
+
+Approved hash signatures (`v = 1`) from the executor were previously not bound to any particular hash, meaning that submitting the same `execTransaction` call twice could execute it for two different nonces. The `s` value of an approved hash signature can now optionally be set to the hash being signed; if `s` is non-zero, `checkNSignatures` reverts with a `GS025` error unless `s` equals `dataHash`. Signatures with `s = 0` keep their existing behaviour.
+
 # Version 1.5.0
 
 ## Compiler settings

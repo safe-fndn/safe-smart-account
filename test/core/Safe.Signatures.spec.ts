@@ -212,6 +212,27 @@ describe("Safe", () => {
             ).to.emit(safe, "ExecutionSuccess");
         });
 
+        it("should bind msg.sender approval to the transaction hash when s is non-zero", async () => {
+            const {
+                safe,
+                signers: [user1],
+            } = await setupTests();
+            const safeAddress = await safe.getAddress();
+            const nonce = await safe.nonce();
+            const tx = buildSafeTransaction({ to: safeAddress, nonce });
+            const txHash = calculateSafeTransactionHash(safeAddress, tx, await chainId());
+            const signature = {
+                signer: user1.address,
+                data: hre.ethers.solidityPacked(["uint256", "bytes32", "uint8"], [user1.address, txHash, 1]),
+            };
+
+            await expect(executeTx(safe, tx, [signature])).to.emit(safe, "ExecutionSuccess");
+            // Submitting the exact same `execTransaction` call again (for example, if it was accidentally submitted twice)
+            // must not execute a second transaction with the next nonce, since the signature is bound to `txHash`.
+            await expect(executeTx(safe, tx, [signature])).to.be.revertedWith("GS025");
+            expect(await safe.nonce()).to.be.eq(nonce + 1n);
+        });
+
         it("if not msg.sender onchain approval is required", async () => {
             const {
                 safe,

@@ -351,6 +351,9 @@ contract Safe is
                 currentOwner = address(uint160(uint256(r)));
                 // Hashes are automatically approved by the `executor` or when they have been pre-approved via a separate transaction.
                 if (executor != currentOwner && approvedHashes[currentOwner][dataHash] == 0) revertWithError("GS025");
+                // Optionally, `s` can be used to bind the approval to a specific `dataHash`. This prevents an executor approval
+                // from being valid for a different hash (for example, the same `execTransaction` call executed for a later nonce).
+                if (s != bytes32(0) && s != dataHash) revertWithError("GS025");
             } else if (v == 2) {
                 // if `v` is 2, then we have a `secp256r1` signature that we verify using the RIP-7212/EIP-7951
                 // precompile. In this case, just like for `v = 0` contract signatures, `r` is the address of the owner,
