@@ -55,21 +55,20 @@ This will deploy the contracts deterministically and verify the contracts on Eth
 
 Preparation:
 
-- Set `MNEMONIC` in `.env`
-- Set `INFURA_KEY` in `.env`
+- Copy `.env.sample` to `.env`
+- Set `MNEMONIC` and `INFURA_KEY` (see `.env.sample` for other optional variables such as `ETHERSCAN_API_KEY` and `NODE_URL`)
 
 ```bash
 npm run deploy-all <network>
 ```
 
-This will perform the following steps
+This runs `hardhat deploy-contracts --network <network>` (see `package.json` and `src/tasks/deploy_contracts.ts`), which performs the following steps:
 
 ```bash
-npm run build
 npx hardhat --network <network> deploy
-npx hardhat --network <network> sourcify
-npx hardhat --network <network> etherscan-verify
 npx hardhat --network <network> local-verify
+npx hardhat --network <network> sourcify
+npx hardhat --network <network> etherscan-verify  # forceLicense: true, license: LGPL-3.0
 ```
 
 #### Custom Networks
