@@ -26,6 +26,13 @@ interface IOwnerManager {
     event ChangedThreshold(uint256 threshold);
 
     /**
+     * @notice The signature type mask of an owner changed.
+     * @param owner The address of the owner.
+     * @param mask The new signature type mask.
+     */
+    event ChangedSignatureTypeMask(address indexed owner, uint256 mask);
+
+    /**
      * @notice Adds the owner `owner` to the Safe and updates the threshold to `_threshold`.
      * @dev This can only be done via a Safe transaction.
      *      ⚠️⚠️⚠️ A Safe can set itself as an owner which is a valid setup for EIP-7702 delegations.
@@ -75,6 +82,35 @@ interface IOwnerManager {
      * @param _threshold New threshold.
      */
     function changeThreshold(uint256 _threshold) external;
+
+    /**
+     * @notice Sets the mask of signature types that `owner` is **not** allowed to use to `mask`.
+     * @dev This can only be done via a Safe transaction.
+     *      The mask is a bitfield of signature types, where a set bit blocks the owner from
+     *      using the corresponding signature type:
+     *      - `0x01`: contract (EIP-1271) signatures (`v = 0`)
+     *      - `0x02`: approved hash signatures (`v = 1`), including implicit approvals by the executor
+     *      - `0x04`: `secp256r1` signatures (`v = 2`)
+     *      - `0x08`: regular EIP-712 ECDSA signatures (`v = 27` or `v = 28`)
+     *      - `0x10`: legacy `eth_sign` ECDSA signatures (`v > 30`)
+     *      Owners start with an empty mask (all signature types allowed) when added. Setting a
+     *      mask with any other bits set, or with all signature types blocked (which would
+     *      effectively disable the owner), reverts.
+     *      ⚠️⚠️⚠️ Blocking all signature types an owner can actually produce (for example, all
+     *      but contract signatures for an EOA) still effectively removes that owner's ability
+     *      to sign, which may make the threshold unreachable. ⚠️⚠️⚠️
+     * @param owner Owner address.
+     * @param mask New signature type mask.
+     */
+    function setSignatureTypeMask(address owner, uint256 mask) external;
+
+    /**
+     * @notice Returns the mask of signature types that `owner` is **not** allowed to use.
+     * @dev See {setSignatureTypeMask} for the meaning of the mask bits. Returns 0 for non-owners.
+     * @param owner Owner address.
+     * @return Signature type mask.
+     */
+    function getSignatureTypeMask(address owner) external view returns (uint256);
 
     /**
      * @notice Returns the number of required confirmations for a Safe transaction aka the threshold.

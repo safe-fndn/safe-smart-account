@@ -16,17 +16,56 @@ import {IOwnerManager} from "../interfaces/IOwnerManager.sol";
 abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     /**
      * @dev The sentinel owner value in the {owners} linked list.
-     *      `SENTINEL_OWNERS` is used to traverse {owners}, such that:
-     *      1. `owners[SENTINEL_OWNERS]` contains the first owner
-     *      2. `owners[last_owner]` points back to `SENTINEL_OWNERS`
+     *      `address(SENTINEL_OWNERS)` is used to traverse {owners}, such that:
+     *      1. `owners[address(SENTINEL_OWNERS)]` contains the first owner
+     *      2. `owners[last_owner]` points back to `address(SENTINEL_OWNERS)`
      */
-    address internal constant SENTINEL_OWNERS = address(0x1);
+    uint256 internal constant SENTINEL_OWNERS = 0x1;
 
     /**
-     * @dev The linked list of owners, where `owners[owner]` points to the next in the list.
+     * @dev Signature type flag for contract (EIP-1271) signatures.
+     */
+    uint256 internal constant SIGNATURE_TYPE_CONTRACT = 0x01;
+
+    /**
+     * @dev Signature type flag for approved hash signatures.
+     */
+    uint256 internal constant SIGNATURE_TYPE_APPROVED_HASH = 0x02;
+
+    /**
+     * @dev Signature type flag for `secp256r1` signatures.
+     */
+    uint256 internal constant SIGNATURE_TYPE_SECP256R1 = 0x04;
+
+    /**
+     * @dev Signature type flag for regular EIP-712 `secp256k1` ECDSA signatures.
+     */
+    uint256 internal constant SIGNATURE_TYPE_EIP712 = 0x08;
+
+    /**
+     * @dev Signature type flag for legacy `eth_sign` (`"\x19Ethereum Signed Message:\n32"` prefixed) ECDSA signatures.
+     */
+    uint256 internal constant SIGNATURE_TYPE_ETH_SIGN = 0x10;
+
+    /**
+     * @dev All valid signature type flags.
+     */
+    uint256 internal constant SIGNATURE_TYPES = 0x1f;
+
+    /**
+     * @dev The bit offset of the signature type mask in an {owners} linked list entry.
+     */
+    uint256 internal constant SIGNATURE_TYPE_MASK_OFFSET = 160;
+
+    /**
+     * @dev The linked list of owners, where the lower 160 bits of `owners[owner]` point to the next in the list.
+     *      The bits above that store a mask of signature types that `owner` is **not** allowed to use, with the
+     *      signature type flags shifted by `SIGNATURE_TYPE_MASK_OFFSET`. Blocking signature types (instead of
+     *      allowing them) means that upgrading a Safe does not change the semantics of existing owners. Bits above
+     *      the signature type mask are never set by the Safe, and are ignored when read.
      *      A mapping is used to allow for `O(1)` inclusion checks.
      */
-    mapping(address => address) internal owners;
+    mapping(address => uint256) internal owners;
 
     /**
      * @dev The number of owners.
@@ -52,7 +91,7 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
         // There has to be at least one Safe owner.
         if (_threshold == 0) revertWithError("GS202");
         // Initializing Safe owners.
-        address currentOwner = SENTINEL_OWNERS;
+        address currentOwner = address(SENTINEL_OWNERS);
         uint256 ownersLength = _owners.length;
         for (uint256 i = 0; i < ownersLength; ++i) {
             address owner = _owners[i];
@@ -62,7 +101,7 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
             // the same address to properly prevent duplicates.
             if (owner == currentOwner) revertWithError("GS204");
             requireCanAddOwner(owner);
-            owners[currentOwner] = owner;
+            owners[currentOwner] = uint160(owner);
             currentOwner = owner;
         }
         owners[currentOwner] = SENTINEL_OWNERS;
@@ -75,8 +114,8 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
      */
     function addOwnerWithThreshold(address owner, uint256 _threshold) public override authorized {
         requireCanAddOwner(owner);
-        owners[owner] = owners[SENTINEL_OWNERS];
-        owners[SENTINEL_OWNERS] = owner;
+        owners[owner] = owners[address(SENTINEL_OWNERS)];
+        owners[address(SENTINEL_OWNERS)] = uint160(owner);
         ++ownerCount;
         emit AddedOwner(owner);
         // Change threshold if it was changed.
@@ -91,8 +130,9 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
         // Here we do pre-decrement as it is cheaper and allows us to check if the threshold is still reachable.
         if (--ownerCount < _threshold) revertWithError("GS201");
         requireCanRemoveOwner(prevOwner, owner);
-        owners[prevOwner] = owners[owner];
-        owners[owner] = address(0);
+        // Preserve the signature type mask of `prevOwner`, and only update its next pointer.
+        owners[prevOwner] = signatureTypeMaskBits(owners[prevOwner]) | uint160(owners[owner]);
+        owners[owner] = 0;
         emit RemovedOwner(owner);
         // Change threshold if threshold was changed.
         if (threshold != _threshold) changeThreshold(_threshold);
@@ -104,9 +144,10 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     function swapOwner(address prevOwner, address oldOwner, address newOwner) public override authorized {
         requireCanAddOwner(newOwner);
         requireCanRemoveOwner(prevOwner, oldOwner);
-        owners[newOwner] = owners[oldOwner];
-        owners[prevOwner] = newOwner;
-        owners[oldOwner] = address(0);
+        // The new owner does not inherit the signature type mask of the old owner, while `prevOwner` keeps its own.
+        owners[newOwner] = uint160(owners[oldOwner]);
+        owners[prevOwner] = signatureTypeMaskBits(owners[prevOwner]) | uint160(newOwner);
+        owners[oldOwner] = 0;
         emit RemovedOwner(oldOwner);
         emit AddedOwner(newOwner);
     }
@@ -117,7 +158,7 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
      */
     function requireIsValidOwner(address owner) internal view {
         // Owner address cannot be null, the sentinel, or the Safe itself (unless it is an EIP-7702 delegated account).
-        if (owner == address(0) || owner == SENTINEL_OWNERS || (owner == address(this) && !isThisDelegatedAccount()))
+        if (owner == address(0) || owner == address(SENTINEL_OWNERS) || (owner == address(this) && !isThisDelegatedAccount()))
             revertWithError("GS203");
     }
 
@@ -128,7 +169,7 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     function requireCanAddOwner(address owner) internal view {
         requireIsValidOwner(owner);
         // No duplicate owners allowed.
-        if (owners[owner] != address(0)) revertWithError("GS204");
+        if (owners[owner] != 0) revertWithError("GS204");
     }
 
     /**
@@ -139,7 +180,37 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     function requireCanRemoveOwner(address prevOwner, address owner) internal view {
         requireIsValidOwner(owner);
         // Check that it corresponds to owner index.
-        if (owners[prevOwner] != owner) revertWithError("GS205");
+        if (address(uint160(owners[prevOwner])) != owner) revertWithError("GS205");
+    }
+
+    /**
+     * @notice Returns the signature type mask bits of an {owners} linked list entry, in place.
+     * @dev Bits above the signature type mask are ignored.
+     * @param entry The {owners} linked list entry.
+     * @return The signature type mask bits, without the next pointer and not shifted.
+     */
+    function signatureTypeMaskBits(uint256 entry) internal pure returns (uint256) {
+        return entry & (SIGNATURE_TYPES << SIGNATURE_TYPE_MASK_OFFSET);
+    }
+
+    /**
+     * @inheritdoc IOwnerManager
+     */
+    function setSignatureTypeMask(address owner, uint256 mask) public override authorized {
+        // Only valid signature type flags may be set, and not all of them, as that would effectively disable the owner.
+        // Since `SIGNATURE_TYPES` has all valid flags set, this is equivalent to `mask` being strictly smaller.
+        if (mask >= SIGNATURE_TYPES) revertWithError("GS206");
+        uint256 entry = owners[owner];
+        if (owner == address(SENTINEL_OWNERS) || entry == 0) revertWithError("GS203");
+        owners[owner] = (mask << SIGNATURE_TYPE_MASK_OFFSET) | uint160(entry);
+        emit ChangedSignatureTypeMask(owner, mask);
+    }
+
+    /**
+     * @inheritdoc IOwnerManager
+     */
+    function getSignatureTypeMask(address owner) public view override returns (uint256) {
+        return signatureTypeMaskBits(owners[owner]) >> SIGNATURE_TYPE_MASK_OFFSET;
     }
 
     /**
@@ -165,7 +236,7 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
      * @inheritdoc IOwnerManager
      */
     function isOwner(address owner) public view override returns (bool) {
-        return !(owner == SENTINEL_OWNERS || owners[owner] == address(0));
+        return !(owner == address(SENTINEL_OWNERS) || owners[owner] == 0);
     }
 
     /**
@@ -176,10 +247,10 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
 
         // Populate return array.
         uint256 index = 0;
-        address currentOwner = owners[SENTINEL_OWNERS];
-        while (currentOwner != SENTINEL_OWNERS) {
+        address currentOwner = address(uint160(owners[address(SENTINEL_OWNERS)]));
+        while (currentOwner != address(SENTINEL_OWNERS)) {
             array[index] = currentOwner;
-            currentOwner = owners[currentOwner];
+            currentOwner = address(uint160(owners[currentOwner]));
             ++index;
         }
         return array;

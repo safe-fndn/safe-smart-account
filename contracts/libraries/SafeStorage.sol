@@ -21,7 +21,7 @@ abstract contract SafeStorage {
     /**
      * @dev See <../common/OwnerManager.sol>.
      */
-    mapping(address => address) internal owners;
+    mapping(address => uint256) internal owners;
 
     /**
      * @dev See <../common/OwnerManager.sol>.

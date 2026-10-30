@@ -320,6 +320,7 @@ contract Safe is
         // There cannot be an owner with address 0.
         address lastOwner = address(0);
         address currentOwner;
+        uint256 signatureType;
         uint256 v; // Implicit conversion from uint8 to uint256 will be done for `v` received from `signatureSplit(...)`.
         bytes32 r;
         // We do not enforce the `s` to be from the lower half of the curve.
@@ -334,6 +335,7 @@ contract Safe is
                 // If `v` is 0 then it is a contract signature
                 // When handling contract signatures the address of the contract is encoded into r
                 currentOwner = address(uint160(uint256(r)));
+                signatureType = SIGNATURE_TYPE_CONTRACT;
 
                 // Check that signature data pointer (`s`) is not pointing inside the static part of the signatures bytes.
                 // This check is not completely accurate, since it is possible that more signatures than the threshold are sent.
@@ -349,6 +351,7 @@ contract Safe is
                 // If `v` is 1 then it is an approved hash.
                 // When handling approved hashes the address of the approver is encoded into `r`.
                 currentOwner = address(uint160(uint256(r)));
+                signatureType = SIGNATURE_TYPE_APPROVED_HASH;
                 // Hashes are automatically approved by the `executor` or when they have been pre-approved via a separate transaction.
                 if (executor != currentOwner && approvedHashes[currentOwner][dataHash] == 0) revertWithError("GS025");
                 // Optionally, `s` can be used to bind the approval to a specific `dataHash`. This prevents an executor approval
@@ -362,6 +365,7 @@ contract Safe is
                 // that is always fixed to 128 bytes. Just like for `secp256k1` EOA signatures, we do not enforce that
                 // `s` is on the lower half of the curve (i.e. the signature is malleable).
                 currentOwner = address(uint160(uint256(r)));
+                signatureType = SIGNATURE_TYPE_SECP256R1;
 
                 // Check that the additional signature data required for `secp256r1` verification is correctly encoded.
                 // That is, the data pointer `s` must be past the "static part" of the signature (just like for contract
@@ -401,12 +405,16 @@ contract Safe is
                 // If `v > 30` then default `v` (27, 28) has been adjusted to encode an `eth_sign` signature.
                 // To support `eth_sign` and similar we adjust `v` and hash the `dataHash` with the EIP-191 message prefix before applying `ecrecover`.
                 currentOwner = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)), uint8(v - 4), r, s);
+                signatureType = SIGNATURE_TYPE_ETH_SIGN;
             } else {
                 // Default is `ecrecover` for the provided `dataHash`.
                 currentOwner = ecrecover(dataHash, uint8(v), r, s);
+                signatureType = SIGNATURE_TYPE_EIP712;
             }
-            if (currentOwner <= lastOwner || owners[currentOwner] == address(0) || currentOwner == SENTINEL_OWNERS)
-                revertWithError("GS026");
+            uint256 ownerEntry = owners[currentOwner];
+            if (currentOwner <= lastOwner || ownerEntry == 0 || currentOwner == address(SENTINEL_OWNERS)) revertWithError("GS026");
+            // Check that the owner is allowed to use the signature type.
+            if (ownerEntry & (signatureType << SIGNATURE_TYPE_MASK_OFFSET) != 0) revertWithError("GS029");
             lastOwner = currentOwner;
         }
     }
@@ -448,7 +456,7 @@ contract Safe is
      * @inheritdoc ISafe
      */
     function approveHash(bytes32 hashToApprove) external override {
-        if (owners[msg.sender] == address(0)) revertWithError("GS030");
+        if (owners[msg.sender] == 0) revertWithError("GS030");
         approvedHashes[msg.sender][hashToApprove] = 1;
         emit ApproveHash(hashToApprove, msg.sender);
     }
