@@ -53,6 +53,9 @@
 - `GS028`: Invalid secp256r1 signature
   - **Why:** The secp256r1 signature verification failed.
   - **How to debug/solve:** Ensure the secp256r1 signature is valid and that either RIP-7212 or EIP-7951 is supported on the chain.
+- `GS029`: Signature type not allowed for owner
+  - **Why:** The owner provided a signature with a type that is blocked by its signature type mask.
+  - **How to debug/solve:** Use a signature type that the owner is allowed to use (see `getSignatureTypeMask`), or change the owner's mask with `setSignatureTypeMask`.
 
 ### General auth related
 - `GS030`: Only owners can approve a hash
@@ -96,14 +99,17 @@
   - **Why:** The signature threshold is zero or not set.
   - **How to debug/solve:** Set threshold > 0.
 - `GS203`: Invalid owner address provided
-  - **Why:** Owner is 0x0, sentinel, the contract itself, or a duplicate.
-  - **How to debug/solve:** Ensure owner addresses are unique, not 0x0, not 0x1, and not the Safe address.
+  - **Why:** Owner is 0x0, sentinel, the contract itself, or a duplicate. When setting a signature type mask, the address is not an owner.
+  - **How to debug/solve:** Ensure owner addresses are unique, not 0x0, not 0x1, and not the Safe address. Only set signature type masks for existing owners.
 - `GS204`: Address is already an owner
   - **Why:** Attempt to add an owner that already exists.
   - **How to debug/solve:** Ensure the owner was not previously added.
 - `GS205`: Invalid prevOwner, owner pair provided
   - **Why:** The prevOwner and owner pair do not match when removing or swapping an owner.
   - **How to debug/solve:** Ensure prevOwner actually points to owner.
+- `GS206`: Invalid signature type mask provided
+  - **Why:** The signature type mask has bits set that do not correspond to a signature type, or blocks all signature types (`0x1f`), which would effectively disable the owner.
+  - **How to debug/solve:** Only set bits in `0x1f` (contract `0x01`, approved hash `0x02`, secp256r1 `0x04`, EIP-712 `0x08`, `eth_sign` `0x10`), leaving at least one signature type allowed. To disable an owner, remove it with `removeOwner` instead.
 
 ### Guard management related
 - `GS300`: Transaction Guard does not implement IERC165

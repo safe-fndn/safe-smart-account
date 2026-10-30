@@ -18,6 +18,10 @@ Previously, a reverting `isValidSignature` call during contract signature valida
 
 Approved hash signatures (`v = 1`) from the executor were previously not bound to any particular hash, meaning that submitting the same `execTransaction` call twice could execute it for two different nonces. The `s` value of an approved hash signature can now optionally be set to the hash being signed; if `s` is non-zero, `checkNSignatures` reverts with a `GS025` error unless `s` equals `dataHash`. Signatures with `s = 0` keep their existing behaviour.
 
+#### Allow blocking signature types per owner
+
+Owners can now be restricted from using specific signature types with the new `setSignatureTypeMask(address owner, uint256 mask)` function (and read with `getSignatureTypeMask(address owner)`). The mask is a bitfield where a set bit **blocks** the owner from using the signature type: contract signatures (`0x01`), approved hash signatures (`0x02`, including implicit approvals by the executor), `secp256r1` signatures (`0x04`), EIP-712 ECDSA signatures (`0x08`) and `eth_sign` ECDSA signatures (`0x10`). Setting a mask with any other bits, or blocking all signature types (which would effectively disable the owner), reverts with `GS206`, and `checkNSignatures` reverts with `GS029` for a blocked signature type. Masks are stored in the bits above the next pointer of the `owners` linked list, which changes from `mapping(address => address)` to `mapping(address => uint256)`. Since flags block rather than allow signature types, existing owners keep their semantics when upgrading. New owners (including the new owner from `swapOwner`) start with an empty mask, and removing an owner clears its mask.
+
 # Version 1.5.0
 
 ## Compiler settings
