@@ -23,10 +23,35 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     address internal constant SENTINEL_OWNERS = address(0x1);
 
     /**
-     * @dev The linked list of owners, where `owners[owner]` points to the next in the list.
+     * @dev The signature type flags used in the {SignerInfo-allowedSignatureTypes} bit mask.
+     *      See {IOwnerManager-setAllowedSignatureTypesForOwner} for more details.
+     */
+    uint256 internal constant SIGNATURE_TYPE_CONTRACT = 1 << 0;
+    uint256 internal constant SIGNATURE_TYPE_APPROVED_HASH = 1 << 1;
+    uint256 internal constant SIGNATURE_TYPE_SECP256R1 = 1 << 2;
+    uint256 internal constant SIGNATURE_TYPE_SECP256K1 = 1 << 3;
+    uint256 internal constant SIGNATURE_TYPE_EXECUTOR = 1 << 4;
+    uint256 internal constant SIGNATURE_TYPES_ALL = (1 << 5) - 1;
+
+    /**
+     * @dev Information stored for each owner.
+     *      The `nextSigner` field MUST be declared first so that it occupies the lower-order 20 bytes of the storage slot.
+     *      This keeps the storage layout backwards compatible with the previous `mapping(address => address)` layout,
+     *      with `allowedSignatureTypes` occupying 8 of the previously unused higher-order 12 bytes.
+     * @param nextSigner The next owner in the linked list.
+     * @param allowedSignatureTypes Bit mask of the signature types allowed for the owner (see {IOwnerManager-setAllowedSignatureTypesForOwner}).
+     *        A value of `0` allows all signature types, which is the default for backwards compatibility.
+     */
+    struct SignerInfo {
+        address nextSigner;
+        bytes8 allowedSignatureTypes;
+    }
+
+    /**
+     * @dev The linked list of owners, where `owners[owner].nextSigner` points to the next in the list.
      *      A mapping is used to allow for `O(1)` inclusion checks.
      */
-    mapping(address => address) internal owners;
+    mapping(address => SignerInfo) internal owners;
 
     /**
      * @dev The number of owners.
@@ -62,10 +87,10 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
             // the same address to properly prevent duplicates.
             if (owner == currentOwner) revertWithError("GS204");
             requireCanAddOwner(owner);
-            owners[currentOwner] = owner;
+            owners[currentOwner].nextSigner = owner;
             currentOwner = owner;
         }
-        owners[currentOwner] = SENTINEL_OWNERS;
+        owners[currentOwner].nextSigner = SENTINEL_OWNERS;
         ownerCount = ownersLength;
         threshold = _threshold;
     }
@@ -75,8 +100,9 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
      */
     function addOwnerWithThreshold(address owner, uint256 _threshold) public override authorized {
         requireCanAddOwner(owner);
-        owners[owner] = owners[SENTINEL_OWNERS];
-        owners[SENTINEL_OWNERS] = owner;
+        // Slots of non-owners are always fully cleared, so new owners start with all signature types allowed.
+        owners[owner].nextSigner = owners[SENTINEL_OWNERS].nextSigner;
+        owners[SENTINEL_OWNERS].nextSigner = owner;
         ++ownerCount;
         emit AddedOwner(owner);
         // Change threshold if it was changed.
@@ -91,8 +117,9 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
         // Here we do pre-decrement as it is cheaper and allows us to check if the threshold is still reachable.
         if (--ownerCount < _threshold) revertWithError("GS201");
         requireCanRemoveOwner(prevOwner, owner);
-        owners[prevOwner] = owners[owner];
-        owners[owner] = address(0);
+        // Only update the `nextSigner` of `prevOwner` to preserve its allowed signature types.
+        owners[prevOwner].nextSigner = owners[owner].nextSigner;
+        delete owners[owner];
         emit RemovedOwner(owner);
         // Change threshold if threshold was changed.
         if (threshold != _threshold) changeThreshold(_threshold);
@@ -104,9 +131,11 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     function swapOwner(address prevOwner, address oldOwner, address newOwner) public override authorized {
         requireCanAddOwner(newOwner);
         requireCanRemoveOwner(prevOwner, oldOwner);
-        owners[newOwner] = owners[oldOwner];
-        owners[prevOwner] = newOwner;
-        owners[oldOwner] = address(0);
+        // Slots of non-owners are always fully cleared, so the new owner does not inherit any allowed signature types.
+        owners[newOwner].nextSigner = owners[oldOwner].nextSigner;
+        // Only update the `nextSigner` of `prevOwner` to preserve its allowed signature types.
+        owners[prevOwner].nextSigner = newOwner;
+        delete owners[oldOwner];
         emit RemovedOwner(oldOwner);
         emit AddedOwner(newOwner);
     }
@@ -128,7 +157,7 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     function requireCanAddOwner(address owner) internal view {
         requireIsValidOwner(owner);
         // No duplicate owners allowed.
-        if (owners[owner] != address(0)) revertWithError("GS204");
+        if (owners[owner].nextSigner != address(0)) revertWithError("GS204");
     }
 
     /**
@@ -139,7 +168,18 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
     function requireCanRemoveOwner(address prevOwner, address owner) internal view {
         requireIsValidOwner(owner);
         // Check that it corresponds to owner index.
-        if (owners[prevOwner] != owner) revertWithError("GS205");
+        if (owners[prevOwner].nextSigner != owner) revertWithError("GS205");
+    }
+
+    /**
+     * @inheritdoc IOwnerManager
+     */
+    function setAllowedSignatureTypesForOwner(address owner, bytes8 allowedSignatureTypes) public override authorized {
+        if (!isOwner(owner)) revertWithError("GS206");
+        // Only allow known signature types, so that a non-zero mask always allows at least one signature type.
+        if (uint64(allowedSignatureTypes) > SIGNATURE_TYPES_ALL) revertWithError("GS207");
+        owners[owner].allowedSignatureTypes = allowedSignatureTypes;
+        emit ChangedAllowedSignatureTypes(owner, allowedSignatureTypes);
     }
 
     /**
@@ -165,7 +205,7 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
      * @inheritdoc IOwnerManager
      */
     function isOwner(address owner) public view override returns (bool) {
-        return !(owner == SENTINEL_OWNERS || owners[owner] == address(0));
+        return !(owner == SENTINEL_OWNERS || owners[owner].nextSigner == address(0));
     }
 
     /**
@@ -176,10 +216,10 @@ abstract contract OwnerManager is EIP7702, SelfAuthorized, IOwnerManager {
 
         // Populate return array.
         uint256 index = 0;
-        address currentOwner = owners[SENTINEL_OWNERS];
+        address currentOwner = owners[SENTINEL_OWNERS].nextSigner;
         while (currentOwner != SENTINEL_OWNERS) {
             array[index] = currentOwner;
-            currentOwner = owners[currentOwner];
+            currentOwner = owners[currentOwner].nextSigner;
             ++index;
         }
         return array;

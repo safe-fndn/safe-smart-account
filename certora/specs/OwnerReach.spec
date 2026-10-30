@@ -192,7 +192,7 @@ definition updateGhostSuccCount(address key, mathint diff) returns bool = forall
 // hook to update the ghostOwners and the reach ghost state whenever the owners field
 // in storage is written.
 // This also checks that the reach_succ invariant is preserved.
-hook Sstore currentContract.owners[KEY address key] address value {
+hook Sstore currentContract.owners[KEY address key].nextSigner address value {
     address valueOrNull;
     address someKey;
     require reach_succ(someKey, ghostOwners[someKey]);
@@ -212,7 +212,7 @@ hook Sstore currentContract.ownerCount uint256 value {
 
 // Hook to match ghost state and storage state when reading owners from storage.
 // This also provides the reach_succ invariant.
-hook Sload address value currentContract.owners[KEY address key] {
+hook Sload address value currentContract.owners[KEY address key].nextSigner {
     require ghostOwners[key] == value;
     require reach_succ(key, value);
     require ghostSuccCount(key) == count_expected(key);

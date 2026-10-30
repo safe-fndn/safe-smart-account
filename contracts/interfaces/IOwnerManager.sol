@@ -26,6 +26,13 @@ interface IOwnerManager {
     event ChangedThreshold(uint256 threshold);
 
     /**
+     * @notice The allowed signature types for an owner changed.
+     * @param owner The address of the owner.
+     * @param allowedSignatureTypes The new bit mask of allowed signature types.
+     */
+    event ChangedAllowedSignatureTypes(address indexed owner, bytes8 allowedSignatureTypes);
+
+    /**
      * @notice Adds the owner `owner` to the Safe and updates the threshold to `_threshold`.
      * @dev This can only be done via a Safe transaction.
      *      ⚠️⚠️⚠️ A Safe can set itself as an owner which is a valid setup for EIP-7702 delegations.
@@ -68,6 +75,25 @@ interface IOwnerManager {
      * @param newOwner New owner address.
      */
     function swapOwner(address prevOwner, address oldOwner, address newOwner) external;
+
+    /**
+     * @notice Sets the signature types that are allowed for the owner `owner`.
+     * @dev This can only be done via a Safe transaction.
+     *      The signature types are encoded as a bit mask, where bit `n` (i.e. `1 << n`) allows:
+     *      - `0`: contract signatures (EIP-1271, `v == 0`)
+     *      - `1`: hashes pre-approved via `approveHash` (`v == 1`)
+     *      - `2`: `secp256r1` EOA signatures (`v == 2`)
+     *      - `3`: `secp256k1` EOA signatures (`ecrecover` and `eth_sign`, `v > 2`)
+     *      - `4`: implicit approval by the executor of the transaction (`v == 1` and the owner is the executor)
+     *      For `v == 1` signatures where the owner is the executor, the executor approval type is always used,
+     *      even if the owner additionally approved the hash via `approveHash`.
+     *      A mask of `0` allows all signature types (this is the default for all owners). Masks containing any other
+     *      bits are rejected, so a non-zero mask always allows at least one signature type.
+     *      Allowed signature types are reset when an owner is added, removed or swapped.
+     * @param owner Owner address.
+     * @param allowedSignatureTypes Bit mask of the allowed signature types.
+     */
+    function setAllowedSignatureTypesForOwner(address owner, bytes8 allowedSignatureTypes) external;
 
     /**
      * @notice Changes the threshold of the Safe to `_threshold`.

@@ -53,6 +53,9 @@
 - `GS028`: Invalid secp256r1 signature
   - **Why:** The secp256r1 signature verification failed.
   - **How to debug/solve:** Ensure the secp256r1 signature is valid and that either RIP-7212 or EIP-7951 is supported on the chain.
+- `GS029`: Signature type not allowed for owner
+  - **Why:** The owner provided a signature of a type that is not allowed by its configured allowed signature types.
+  - **How to debug/solve:** Use a signature type that is allowed for the owner, or update the allowed signature types with `setAllowedSignatureTypesForOwner`.
 
 ### General auth related
 - `GS030`: Only owners can approve a hash
@@ -104,6 +107,12 @@
 - `GS205`: Invalid prevOwner, owner pair provided
   - **Why:** The prevOwner and owner pair do not match when removing or swapping an owner.
   - **How to debug/solve:** Ensure prevOwner actually points to owner.
+- `GS206`: Address is not an owner
+  - **Why:** Attempt to set the allowed signature types for an address that is not an owner.
+  - **How to debug/solve:** Ensure the address is an owner of the Safe.
+- `GS207`: Invalid allowed signature types provided
+  - **Why:** The allowed signature types mask contains bits that do not correspond to a known signature type.
+  - **How to debug/solve:** Only use the signature type bits documented in `setAllowedSignatureTypesForOwner`.
 
 ### Guard management related
 - `GS300`: Transaction Guard does not implement IERC165

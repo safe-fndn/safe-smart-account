@@ -327,6 +327,7 @@ contract Safe is
         // Since we have other mechanisms to prevent duplicated signatures (ordered owners array) and replay protection (nonce),
         // we can safely ignore ECDSA malleability.
         bytes32 s;
+        uint256 signatureType;
         uint256 i;
         for (i = 0; i < requiredSignatures; ++i) {
             (v, r, s) = signatureSplit(signatures, i);
@@ -334,6 +335,7 @@ contract Safe is
                 // If `v` is 0 then it is a contract signature
                 // When handling contract signatures the address of the contract is encoded into r
                 currentOwner = address(uint160(uint256(r)));
+                signatureType = SIGNATURE_TYPE_CONTRACT;
 
                 // Check that signature data pointer (`s`) is not pointing inside the static part of the signatures bytes.
                 // This check is not completely accurate, since it is possible that more signatures than the threshold are sent.
@@ -350,7 +352,12 @@ contract Safe is
                 // When handling approved hashes the address of the approver is encoded into `r`.
                 currentOwner = address(uint160(uint256(r)));
                 // Hashes are automatically approved by the `executor` or when they have been pre-approved via a separate transaction.
-                if (executor != currentOwner && approvedHashes[currentOwner][dataHash] == 0) revertWithError("GS025");
+                if (executor == currentOwner) {
+                    signatureType = SIGNATURE_TYPE_EXECUTOR;
+                } else {
+                    if (approvedHashes[currentOwner][dataHash] == 0) revertWithError("GS025");
+                    signatureType = SIGNATURE_TYPE_APPROVED_HASH;
+                }
                 // Optionally, `s` can be used to bind the approval to a specific `dataHash`. This prevents an executor approval
                 // from being valid for a different hash (for example, the same `execTransaction` call executed for a later nonce).
                 if (s != bytes32(0) && s != dataHash) revertWithError("GS025");
@@ -362,6 +369,7 @@ contract Safe is
                 // that is always fixed to 128 bytes. Just like for `secp256k1` EOA signatures, we do not enforce that
                 // `s` is on the lower half of the curve (i.e. the signature is malleable).
                 currentOwner = address(uint160(uint256(r)));
+                signatureType = SIGNATURE_TYPE_SECP256R1;
 
                 // Check that the additional signature data required for `secp256r1` verification is correctly encoded.
                 // That is, the data pointer `s` must be past the "static part" of the signature (just like for contract
@@ -401,12 +409,27 @@ contract Safe is
                 // If `v > 30` then default `v` (27, 28) has been adjusted to encode an `eth_sign` signature.
                 // To support `eth_sign` and similar we adjust `v` and hash the `dataHash` with the EIP-191 message prefix before applying `ecrecover`.
                 currentOwner = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)), uint8(v - 4), r, s);
+                signatureType = SIGNATURE_TYPE_SECP256K1;
             } else {
                 // Default is `ecrecover` for the provided `dataHash`.
                 currentOwner = ecrecover(dataHash, uint8(v), r, s);
+                signatureType = SIGNATURE_TYPE_SECP256K1;
             }
-            if (currentOwner <= lastOwner || owners[currentOwner] == address(0) || currentOwner == SENTINEL_OWNERS)
+            // Read the owner's `SignerInfo` with a single storage load, as the compiler loads the slot once per accessed struct member.
+            // The `nextSigner` is stored in the lower 160 bits and the `allowedSignatureTypes` in the 64 bits above it.
+            SignerInfo storage signer = owners[currentOwner];
+            uint256 signerInfo;
+            /* solhint-disable no-inline-assembly */
+            /// @solidity memory-safe-assembly
+            assembly {
+                signerInfo := sload(signer.slot)
+            }
+            /* solhint-enable no-inline-assembly */
+            if (currentOwner <= lastOwner || address(uint160(signerInfo)) == address(0) || currentOwner == SENTINEL_OWNERS)
                 revertWithError("GS026");
+            // Check that the signature type is allowed for the owner. An empty mask allows all signature types.
+            uint256 allowedSignatureTypes = uint64(signerInfo >> 160);
+            if (allowedSignatureTypes != 0 && (allowedSignatureTypes & signatureType) == 0) revertWithError("GS029");
             lastOwner = currentOwner;
         }
     }
@@ -448,7 +471,7 @@ contract Safe is
      * @inheritdoc ISafe
      */
     function approveHash(bytes32 hashToApprove) external override {
-        if (owners[msg.sender] == address(0)) revertWithError("GS030");
+        if (owners[msg.sender].nextSigner == address(0)) revertWithError("GS030");
         approvedHashes[msg.sender][hashToApprove] = 1;
         emit ApproveHash(hashToApprove, msg.sender);
     }
