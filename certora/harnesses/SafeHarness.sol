@@ -44,12 +44,24 @@ contract SafeHarness is Safe {
         return modules[module];
     }
 
+    // The first guard; zero if there is none.
     function getSafeGuard() public view returns (address) {
-        return getGuard();
+        address[] memory guards = getGuards();
+        return guards.length == 0 ? address(0) : guards[0];
     }
 
+    function getSafeGuardCount() public view returns (uint256) {
+        return getGuards().length;
+    }
+
+    // The first module guard; zero if there is none.
     function getModuleGuardExternal() public view returns (address) {
-        return getModuleGuard();
+        address[] memory moduleGuards = getModuleGuards();
+        return moduleGuards.length == 0 ? address(0) : moduleGuards[0];
+    }
+
+    function getModuleGuardCount() public view returns (uint256) {
+        return getModuleGuards().length;
     }
 
     function getNativeTokenBalance() public view returns (uint256) {

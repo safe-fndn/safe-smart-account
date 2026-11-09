@@ -37,10 +37,10 @@ interface IModuleManager {
     event ExecutionFromModuleFailure(address indexed module);
 
     /**
-     * @notice The module transaction guard changed.
-     * @param moduleGuard The address of the new module transaction guard.
+     * @notice The module transaction guards changed.
+     * @param moduleGuards The new module transaction guards, in the order they run their pre-execution checks.
      */
-    event ChangedModuleGuard(address indexed moduleGuard);
+    event ChangedModuleGuards(address[] moduleGuards);
 
     /**
      * @notice Enables the module `module` for the Safe.
@@ -109,13 +109,26 @@ interface IModuleManager {
     function getModulesPaginated(address start, uint256 pageSize) external view returns (address[] memory array, address next);
 
     /**
-     * @notice Set Module Guard `moduleGuard` for the Safe. Make sure you trust the module guard.
-     * @dev Set a module guard that checks transactions initiated by the module before and after execution.
-     *      This can only be done via a Safe transaction.
+     * @notice Set Module Guards `moduleGuards` for the Safe, replacing the current ones. Make sure you trust the module guards.
+     * @dev Set up to 8 module guards that check transactions initiated by modules before and after execution: the
+     *      pre-execution checks run in the order of `moduleGuards`, the post-execution checks in reverse order.
+     *      This can only be done via a Safe transaction, which includes a module transaction.
+     *      The post-execution checks run with the module guards read before execution: a module guard removed by a
+     *      module transaction still runs its post-execution check, and a module guard added by it runs none. A module
+     *      guard that must not be removed can therefore revert in its post-execution check if it is no longer in
+     *      {getModuleGuards}.
      *      ⚠️⚠️⚠️ IMPORTANT: Since a module guard has full power to block Safe transaction execution initiated via a
      *      module, a broken module guard can cause a denial of service for the Safe modules. Make sure to carefully
      *      audit the module guard code and design recovery mechanisms. ⚠️⚠️⚠️
-     * @param moduleGuard The address of the module guard to be used or the zero address to disable the module guard.
+     * @param moduleGuards The addresses of the module guards to be used, or an empty array to disable all module guards.
      */
-    function setModuleGuard(address moduleGuard) external;
+    function setModuleGuards(address[] calldata moduleGuards) external;
+
+    /**
+     * @notice Returns the module guards of the Safe, in the order they run their pre-execution checks.
+     * @dev Module guards should use this function rather than read the module guard storage slot, which packs the
+     *      first module guard with the number of other module guards.
+     * @return moduleGuards Array of module guards.
+     */
+    function getModuleGuards() external view returns (address[] memory moduleGuards);
 }

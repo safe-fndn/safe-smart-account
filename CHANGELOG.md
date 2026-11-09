@@ -18,6 +18,14 @@ Previously, a reverting `isValidSignature` call during contract signature valida
 
 Approved hash signatures (`v = 1`) from the executor were previously not bound to any particular hash, meaning that submitting the same `execTransaction` call twice could execute it for two different nonces. The `s` value of an approved hash signature can now optionally be set to the hash being signed; if `s` is non-zero, `checkNSignatures` reverts with a `GS025` error unless `s` equals `dataHash`. Signatures with `s = 0` keep their existing behaviour.
 
+#### Multiple transaction and module guards
+
+A Safe can now have up to 8 transaction guards and up to 8 module guards, set with `setGuards(address[])` and `setModuleGuards(address[])` and returned by `getGuards()` and `getModuleGuards()`. Pre-execution checks run in the order of the list, post-execution checks in reverse order, with the guards read once per execution: a guard removed by a transaction still runs its post-execution check. Each module guard gets back the hash it returned from `checkModuleTransaction`.
+
+The guard storage slots pack the first guard with the number of other guards, which follow in the next slots. A Safe upgrading from v1.5.0 keeps its guards.
+
+**Breaking change**: `setGuard(address)` and `setModuleGuard(address)` are replaced by `setGuards(address[])` and `setModuleGuards(address[])`, and the `ChangedGuard` and `ChangedModuleGuard` events by `ChangedGuards(address[])` and `ChangedModuleGuards(address[])`. The internal `getGuard()` and `getModuleGuard()` functions are replaced by `getGuards()` and `getModuleGuards()`. Guards should use these instead of reading the guard storage slots, which hold more than an address when a Safe has more than one guard.
+
 # Version 1.5.0
 
 ## Compiler settings

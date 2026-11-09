@@ -46,6 +46,7 @@ A basic Safe does not require any modules. Adding and removing a module requires
 
 Transaction guards can make checks before and after a Safe transaction.
 The pre-transaction check can, for example, validate all parameters of the transaction before execution. The post-transaction check can, for example, perform checks on the final state of the Safe.
+A Safe can have up to 8 transaction guards and up to 8 module guards, set with `setGuards` and `setModuleGuards`. Their pre-transaction checks run in the order they were set, and their post-transaction checks in reverse order.
 
 > ⚠️ IMPORTANT: Since a guard has full power to block Safe transaction execution,
 > a broken guard can cause a denial of service for the Safe. Make sure to carefully audit the guard code and design recovery mechanisms.
@@ -134,7 +135,7 @@ The linked list head and tail are the 0x1 address. The head and tail are never r
 The method `execTransaction` in the Safe.sol contract is the main entry point for executing transactions.
 It takes the transaction parameters and nonce/chain ID from the chain, generates the Safe transaction hash and verifies the signatures.
 
-If a transaction guard is set, it forwards the transaction to the guard for additional checks. If the guard check passes, it executes the transaction. After the transaction is executed, it forwards the hash and success boolean to the guard.
+It reads the transaction guards once, and forwards the transaction to each of them, in order, for additional checks. If all guard checks pass, it executes the transaction. After the transaction is executed, it forwards the hash and success boolean to each of the same guards, in reverse order.
 
 If the refund parameter is set to true, the Safe will refund the gas costs to the refund receiver. If the refund receiver is set to 0, the Safe will refund the gas costs to the tx.origin.
 

@@ -9,7 +9,9 @@ using SafeHarness as safe;
 // ---- Methods block ----------------------------------------------------------
 methods {
     function getModuleGuardExternal() external returns (address) envfree;
+    function getModuleGuardCount() external returns (uint256) envfree;
     function getSafeGuard() external returns (address) envfree;
+    function getSafeGuardCount() external returns (uint256) envfree;
     
     function txnGuardMock.preCheckedTransactions() external returns (bool) envfree;
     function txnGuardMock.postCheckedTransactions() external returns (bool) envfree;
@@ -71,65 +73,69 @@ methods {
 
 // ---- Rules ------------------------------------------------------------------
 
-/// @dev the only method that can change the guard is setGuard
+/// @dev the only method that can change the guards is setGuards
 rule guardAddressChange(method f) filtered {
     f -> f.selector != sig:simulateAndRevert(address,bytes).selector &&
          f.selector != sig:getStorageAt(uint256,uint256).selector
 } {
     address guardBefore = getSafeGuard();
+    uint256 countBefore = getSafeGuardCount();
 
     calldataarg args; env e;
     f(e, args);
 
     address guardAfter = getSafeGuard();
+    uint256 countAfter = getSafeGuardCount();
 
-    assert guardBefore != guardAfter =>
-        f.selector == sig:setGuard(address).selector;
+    assert guardBefore != guardAfter || countBefore != countAfter =>
+        f.selector == sig:setGuards(address[]).selector;
 }
 
-/// @dev the only method that can change the module guard is setModuleGuard
+/// @dev the only method that can change the module guards is setModuleGuards
 rule moduleGuardAddressChange(method f) filtered {
     f -> f.selector != sig:simulateAndRevert(address,bytes).selector &&
          f.selector != sig:getStorageAt(uint256,uint256).selector
 } {
     address guardBefore = getModuleGuardExternal();
+    uint256 countBefore = getModuleGuardCount();
     
     calldataarg args; env e;
     f(e,args);
     
     address guardAfter = getModuleGuardExternal();
+    uint256 countAfter = getModuleGuardCount();
 
-    assert guardBefore != guardAfter => 
-        f.selector == sig:setModuleGuard(address).selector;
+    assert guardBefore != guardAfter || countBefore != countAfter => 
+        f.selector == sig:setModuleGuards(address[]).selector;
 }
 
-/// @dev set-get correspondence for (regular) guard
-rule setGetCorrespondenceGuard(address guard) {
+/// @dev set-get correspondence for (regular) guards
+rule setGetCorrespondenceGuard(address[] guards) {
     env e;
-    setGuard(e,guard);
-    address gotGuard = getSafeGuard();
-    assert guard == gotGuard;
+    setGuards(e,guards);
+    assert getSafeGuardCount() == guards.length;
+    assert guards.length > 0 => getSafeGuard() == guards[0];
 }
 
-/// @dev set-get correspondence for module guard
-rule setGetCorrespondenceModuleGuard(address guard) {
+/// @dev set-get correspondence for module guards
+rule setGetCorrespondenceModuleGuard(address[] guards) {
     env e;
-    setModuleGuard(e,guard);
-    address gotGuard = getModuleGuardExternal();
-    assert guard == gotGuard;
+    setModuleGuards(e,guards);
+    assert getModuleGuardCount() == guards.length;
+    assert guards.length > 0 => getModuleGuardExternal() == guards[0];
 }
 
-/// @dev setGuard can only be called by contract itself.
-rule setGuardReentrant(address guard) {
+/// @dev setGuards can only be called by contract itself.
+rule setGuardReentrant(address[] guards) {
     env e;
-    setGuard(e,guard); // a successful call to setGuard
+    setGuards(e,guards); // a successful call to setGuards
     assert (e.msg.sender == safe);
 }
 
-/// @dev setModuleGuard can only be called by contract itself.
-rule setModuleGuardReentrant(address guard) {
+/// @dev setModuleGuards can only be called by contract itself.
+rule setModuleGuardReentrant(address[] guards) {
     env e;
-    setModuleGuard(e,guard);
+    setModuleGuards(e,guards);
     assert(e.msg.sender == safe);
 }
 
@@ -148,8 +154,9 @@ rule txnGuardCalled(
     bytes signatures
 ) {
     env e;
-    // the txn guard is the mock
+    // the txn guard is the mock, and the only one
     require (getSafeGuard() == txnGuardMock);
+    require (getSafeGuardCount() == 1);
 
     txnGuardMock.resetChecks(e); // reset the check triggers
     txnGuardMock2.resetChecks(e);
@@ -174,8 +181,9 @@ rule moduleGuardCalled(
         bytes data,
         Enum.Operation operation) {
     env e;
-    // the module guard is the mock
+    // the module guard is the mock, and the only one
     require (getModuleGuardExternal() == modGuardMock);
+    require (getModuleGuardCount() == 1);
     
     modGuardMock.resetChecks(e); // reset the check triggers
     modGuardMock2.resetChecks(e);
@@ -199,8 +207,9 @@ rule moduleGuardCalledReturn(
         bytes data,
         Enum.Operation operation) {
     env e;
-    // the module guard is the mock
+    // the module guard is the mock, and the only one
     require (getModuleGuardExternal() == modGuardMock);
+    require (getModuleGuardCount() == 1);
     
     modGuardMock.resetChecks(e); // reset the check triggers
     modGuardMock2.resetChecks(e);

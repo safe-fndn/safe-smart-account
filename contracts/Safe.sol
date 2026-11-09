@@ -2,7 +2,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {FallbackManager} from "./base/FallbackManager.sol";
-import {ITransactionGuard, GuardManager} from "./base/GuardManager.sol";
+import {GuardManager} from "./base/GuardManager.sol";
 import {ModuleManager} from "./base/ModuleManager.sol";
 import {OwnerManager} from "./base/OwnerManager.sol";
 import {EIP7951} from "./common/EIP7951.sol";
@@ -26,7 +26,8 @@ import {Enum} from "./interfaces/Enum.sol";
  *      - Transaction Hash: Hash of a transaction is calculated using the EIP-712 typed structured data hashing scheme.
  *      - Nonce: Each transaction should have a different nonce to prevent replay attacks.
  *      - Signature: A valid signature of an owner of the Safe for a transaction hash.
- *      - Guards: Guards are contracts that can execute pre- and post- transaction checks. There are two types of guards:
+ *      - Guards: Guards are contracts that can execute pre- and post- transaction checks. There are two types of guards,
+ *        and a Safe can enable up to 8 of each:
  *          1. Transaction Guard: managed in `GuardManager` for transactions executed with `execTransaction`.
  *          2. Module Guard: managed in `ModuleManager` for transactions executed with `execTransactionFromModule`
  *      - Modules: Modules are contracts that can be used to extend the write functionality of a Safe. Managed in `ModuleManager`.
@@ -169,27 +170,21 @@ contract Safe is
             );
             checkSignatures(msg.sender, txHash, signatures);
         }
-        address guard = getGuard();
-        {
-            if (guard != address(0)) {
-                ITransactionGuard(guard).checkTransaction(
-                    // Transaction info:
-                    to,
-                    value,
-                    data,
-                    operation,
-                    safeTxGas,
-                    // Payment info:
-                    baseGas,
-                    gasPrice,
-                    gasToken,
-                    refundReceiver,
-                    // Signature info:
-                    signatures,
-                    msg.sender
-                );
-            }
-        }
+        address[] memory guards = preExecutionChecks(
+            // Transaction info:
+            to,
+            value,
+            data,
+            operation,
+            safeTxGas,
+            // Payment info:
+            baseGas,
+            gasPrice,
+            gasToken,
+            refundReceiver,
+            // Signature info:
+            signatures
+        );
 
         // We require some gas to emit the events (at least 2500) after the execution and some to perform code until the execution (500).
         // We also include the 1/64 in the check that is not sent along with a call to counteract potential shortings because of EIP-150.
@@ -222,11 +217,7 @@ contract Safe is
             if (success) emit ExecutionSuccess(txHash, payment);
             else emit ExecutionFailure(txHash, payment);
         }
-        {
-            if (guard != address(0)) {
-                ITransactionGuard(guard).checkAfterExecution(txHash, success);
-            }
-        }
+        postExecutionChecks(guards, txHash, success);
     }
 
     /**

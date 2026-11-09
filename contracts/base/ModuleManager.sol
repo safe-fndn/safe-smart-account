@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 /* solhint-disable one-contract-per-file */
 pragma solidity >=0.7.0 <0.9.0;
+import {GuardList} from "./../common/GuardList.sol";
 import {SelfAuthorized} from "./../common/SelfAuthorized.sol";
 import {IERC165} from "./../interfaces/IERC165.sol";
 import {IModuleManager} from "./../interfaces/IModuleManager.sol";
 import {Enum} from "./../interfaces/Enum.sol";
-// solhint-disable-next-line no-unused-import
 import {MODULE_GUARD_STORAGE_SLOT} from "./../libraries/SafeStorage.sol";
 import {Executor} from "./Executor.sol";
 
@@ -64,7 +64,7 @@ abstract contract BaseModuleGuard is IModuleGuard {
  * @author Stefan George - @Georgi87
  * @author Richard Meissner - @rmeissner
  */
-abstract contract ModuleManager is SelfAuthorized, Executor, IModuleManager {
+abstract contract ModuleManager is SelfAuthorized, GuardList, Executor, IModuleManager {
     /**
      * @dev The sentinel module value in the {modules} linked list.
      *      `SENTINEL_MODULES` is used to traverse {modules}, such that:
@@ -96,41 +96,42 @@ abstract contract ModuleManager is SelfAuthorized, Executor, IModuleManager {
     }
 
     /**
-     * @notice Runs pre-execution checks for module transactions if a guard is enabled.
+     * @notice Runs pre-execution checks for module transactions with every enabled module guard, in order.
      * @param to Target address of module transaction.
      * @param value Native token value of module transaction.
      * @param data Data payload of module transaction.
      * @param operation Operation type (0 for `CALL`, 1 for `DELEGATECALL`) of the module transaction.
-     * @return guard Guard to be used for checking.
-     * @return guardHash Hash returned from the guard tx check.
+     * @return guards Guards to be used for the post-execution checks, read once like in {preExecutionChecks}.
+     * @return guardHashes The hash each guard returned from {IModuleGuard.checkModuleTransaction}, by position.
      */
     function preModuleExecution(
         address to,
         uint256 value,
         bytes memory data,
         Enum.Operation operation
-    ) internal returns (address guard, bytes32 guardHash) {
+    ) internal returns (address[] memory guards, bytes32[] memory guardHashes) {
         onBeforeExecTransactionFromModule(to, value, data, operation);
-        guard = getModuleGuard();
+        guards = getModuleGuards();
 
         // Only allow-listed modules are allowed.
         if (msg.sender == SENTINEL_MODULES || modules[msg.sender] == address(0)) revertWithError("GS104");
 
-        if (guard != address(0)) {
-            guardHash = IModuleGuard(guard).checkModuleTransaction(to, value, data, operation, msg.sender);
+        guardHashes = new bytes32[](guards.length);
+        for (uint256 i = 0; i < guards.length; ++i) {
+            guardHashes[i] = IModuleGuard(guards[i]).checkModuleTransaction(to, value, data, operation, msg.sender);
         }
     }
 
     /**
-     * @notice Runs post-execution checks for module transactions if a guard is enabled.
+     * @notice Runs post-execution checks for module transactions with the guards of the pre-execution checks, in reverse order.
      * @dev Emits event based on module transaction success.
-     * @param guard Guard to be used for checking.
-     * @param guardHash Hash returned from the guard during the pre-execution check.
+     * @param guards Guards returned by {preModuleExecution}.
+     * @param guardHashes Hashes returned by {preModuleExecution}.
      * @param success Boolean flag indicating if the call succeeded.
      */
-    function postModuleExecution(address guard, bytes32 guardHash, bool success) internal {
-        if (guard != address(0)) {
-            IModuleGuard(guard).checkAfterModuleExecution(guardHash, success);
+    function postModuleExecution(address[] memory guards, bytes32[] memory guardHashes, bool success) internal {
+        for (uint256 i = guards.length; i > 0; --i) {
+            IModuleGuard(guards[i - 1]).checkAfterModuleExecution(guardHashes[i - 1], success);
         }
         if (success) emit ExecutionFromModuleSuccess(msg.sender);
         else emit ExecutionFromModuleFailure(msg.sender);
@@ -170,9 +171,9 @@ abstract contract ModuleManager is SelfAuthorized, Executor, IModuleManager {
         bytes memory data,
         Enum.Operation operation
     ) external override returns (bool success) {
-        (address guard, bytes32 guardHash) = preModuleExecution(to, value, data, operation);
+        (address[] memory guards, bytes32[] memory guardHashes) = preModuleExecution(to, value, data, operation);
         success = execute(to, value, data, operation, type(uint256).max);
-        postModuleExecution(guard, guardHash, success);
+        postModuleExecution(guards, guardHashes, success);
     }
 
     /**
@@ -184,7 +185,7 @@ abstract contract ModuleManager is SelfAuthorized, Executor, IModuleManager {
         bytes memory data,
         Enum.Operation operation
     ) external override returns (bool success, bytes memory returnData) {
-        (address guard, bytes32 guardHash) = preModuleExecution(to, value, data, operation);
+        (address[] memory guards, bytes32[] memory guardHashes) = preModuleExecution(to, value, data, operation);
         success = execute(to, value, data, operation, type(uint256).max);
         /* solhint-disable no-inline-assembly */
         /// @solidity memory-safe-assembly
@@ -201,7 +202,7 @@ abstract contract ModuleManager is SelfAuthorized, Executor, IModuleManager {
             returndatacopy(add(returnData, 0x20), 0, returndatasize())
         }
         /* solhint-enable no-inline-assembly */
-        postModuleExecution(guard, guardHash, success);
+        postModuleExecution(guards, guardHashes, success);
     }
 
     /**
@@ -267,30 +268,16 @@ abstract contract ModuleManager is SelfAuthorized, Executor, IModuleManager {
     /**
      * @inheritdoc IModuleManager
      */
-    function setModuleGuard(address moduleGuard) external override authorized {
-        if (moduleGuard != address(0) && !IModuleGuard(moduleGuard).supportsInterface(type(IModuleGuard).interfaceId))
-            revertWithError("GS301");
-
-        /* solhint-disable no-inline-assembly */
-        /// @solidity memory-safe-assembly
-        assembly {
-            sstore(MODULE_GUARD_STORAGE_SLOT, moduleGuard)
-        }
-        /* solhint-enable no-inline-assembly */
-        emit ChangedModuleGuard(moduleGuard);
+    function setModuleGuards(address[] calldata moduleGuards) external override authorized {
+        writeGuards(MODULE_GUARD_STORAGE_SLOT, moduleGuards, type(IModuleGuard).interfaceId, "GS301");
+        emit ChangedModuleGuards(moduleGuards);
     }
 
     /**
-     * @dev Internal method to retrieve the current module guard.
-     * @return moduleGuard The address of the module guard.
+     * @inheritdoc IModuleManager
      */
-    function getModuleGuard() internal view returns (address moduleGuard) {
-        /* solhint-disable no-inline-assembly */
-        /// @solidity memory-safe-assembly
-        assembly {
-            moduleGuard := sload(MODULE_GUARD_STORAGE_SLOT)
-        }
-        /* solhint-enable no-inline-assembly */
+    function getModuleGuards() public view override returns (address[] memory moduleGuards) {
+        return readGuards(MODULE_GUARD_STORAGE_SLOT);
     }
 
     /**

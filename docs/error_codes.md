@@ -107,11 +107,17 @@
 
 ### Guard management related
 - `GS300`: Transaction Guard does not implement IERC165
-  - **Why:** Attempt to set a guard that does not implement the ITransactionGuard (IERC165) interface.
-  - **How to debug/solve:** Ensure the guard implements the required interface.
+  - **Why:** Attempt to set a guard that is the zero address or does not implement the ITransactionGuard (IERC165) interface.
+  - **How to debug/solve:** Ensure every guard implements the required interface. Pass an empty array to disable all guards.
 - `GS301`: Module Guard does not implement IERC165
-  - **Why:** Attempt to set a module guard that does not implement the IModuleGuard (IERC165) interface.
-  - **How to debug/solve:** Ensure the module guard implements the required interface.
+  - **Why:** Attempt to set a module guard that is the zero address or does not implement the IModuleGuard (IERC165) interface.
+  - **How to debug/solve:** Ensure every module guard implements the required interface. Pass an empty array to disable all module guards.
+- `GS302`: Guard is listed twice
+  - **Why:** Attempt to set guards or module guards with the same address more than once.
+  - **How to debug/solve:** Remove the duplicate address.
+- `GS303`: Too many guards
+  - **Why:** Attempt to set more than 8 guards or more than 8 module guards.
+  - **How to debug/solve:** Set at most 8 guards of each kind.
 
 ### Fallback handler related
 - `GS400`: Fallback handler cannot be set to self

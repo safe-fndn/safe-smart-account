@@ -14,7 +14,7 @@ describe("DelegateCallTransactionGuard", () => {
         const guardFactory = await hre.ethers.getContractFactory("DelegateCallTransactionGuard");
         const guard = await guardFactory.deploy(AddressZero);
         const guardAddress = await guard.getAddress();
-        await executeContractCallWithSigners(safe, safe, "setGuard", [guardAddress], [user1]);
+        await executeContractCallWithSigners(safe, safe, "setGuards", [[guardAddress]], [user1]);
         return {
             safe,
             guardFactory,
@@ -58,7 +58,7 @@ describe("DelegateCallTransactionGuard", () => {
                 guard,
                 signers: [user1],
             } = await setupTests();
-            const tx = await buildContractCall(safe, "setGuard", [AddressZero], 0, true);
+            const tx = await buildContractCall(safe, "setGuards", [[]], 0, true);
             await expect(
                 guard.checkTransaction(
                     tx.to,
@@ -82,7 +82,7 @@ describe("DelegateCallTransactionGuard", () => {
                 guard,
                 signers: [user1],
             } = await setupTests();
-            const tx = await buildContractCall(safe, "setGuard", [AddressZero], 0);
+            const tx = await buildContractCall(safe, "setGuards", [[]], 0);
             await guard.checkTransaction(
                 tx.to,
                 tx.value,
@@ -103,11 +103,11 @@ describe("DelegateCallTransactionGuard", () => {
                 safe,
                 signers: [user1],
             } = await setupTests();
-            await expect(executeContractCallWithSigners(safe, safe, "setGuard", [AddressZero], [user1], true)).to.be.revertedWith(
+            await expect(executeContractCallWithSigners(safe, safe, "setGuards", [[]], [user1], true)).to.be.revertedWith(
                 "This call is restricted",
             );
 
-            await executeContractCallWithSigners(safe, safe, "setGuard", [AddressZero], [user1]);
+            await executeContractCallWithSigners(safe, safe, "setGuards", [[]], [user1]);
         });
 
         it("can set allowed target via Safe", async () => {
@@ -118,7 +118,7 @@ describe("DelegateCallTransactionGuard", () => {
             } = await setupTests();
             const guard = await guardFactory.deploy(AddressOne);
             const guardAddress = await guard.getAddress();
-            await executeContractCallWithSigners(safe, safe, "setGuard", [guardAddress], [user1]);
+            await executeContractCallWithSigners(safe, safe, "setGuards", [[guardAddress]], [user1]);
 
             expect(await guard.ALLOWED_TARGET()).to.be.eq(AddressOne);
             const allowedTarget = safe.attach(AddressOne);

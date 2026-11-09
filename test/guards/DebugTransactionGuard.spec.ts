@@ -16,7 +16,7 @@ describe("DebugTransactionGuard", () => {
         const guard = await guardFactory.deploy();
         const guardAddress = await guard.getAddress();
         const mock = await getMock();
-        await executeContractCallWithSigners(safe, safe, "setGuard", [guardAddress], [user1]);
+        await executeContractCallWithSigners(safe, safe, "setGuards", [[guardAddress]], [user1]);
         return {
             safe,
             mock,

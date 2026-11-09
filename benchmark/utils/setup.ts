@@ -31,7 +31,7 @@ const generateTarget = async (owners: number, threshold: number, guardAddress: s
         logGasUsage,
         saltNumber,
     });
-    await executeContractCallWithSigners(safe, safe, "setGuard", [guardAddress], signers);
+    await executeContractCallWithSigners(safe, safe, "setGuards", [guardAddress === AddressZero ? [] : [guardAddress]], signers);
     return safe;
 };
 
