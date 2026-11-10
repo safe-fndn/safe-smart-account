@@ -50,6 +50,16 @@ if (PK) {
     };
 }
 const soliditySettings = SOLIDITY_SETTINGS ? JSON.parse(SOLIDITY_SETTINGS) : undefined;
+const proxyCompiler = {
+    version: SOLIDITY_VERSION ?? DEFAULT_SOLIDITY_VERSION,
+    settings: {
+        ...soliditySettings,
+        // Our local-verify task recompiles sources from saved deployment metadata and compares the result with onchain bytecode.
+        // It requires source text in the metadata. hardhat-deploy enables this for solidity.compilers only,
+        // so useLiteralContent must be set explicitly for these overrides.
+        metadata: { ...soliditySettings?.metadata, useLiteralContent: true, bytecodeHash: "none" },
+    },
+};
 
 const deterministicDeployment = (network: string): DeterministicDeploymentInfo => {
     const info = getSingletonFactoryInfo(parseInt(network));
@@ -82,6 +92,11 @@ const userConfig: HardhatUserConfig = {
             { version: SOLIDITY_VERSION ?? DEFAULT_SOLIDITY_VERSION, settings: soliditySettings },
             { version: DEFAULT_SOLIDITY_VERSION },
         ],
+        // The factory embeds the proxy's creation code, so both must omit the metadata hash.
+        overrides: {
+            "contracts/proxies/SafeProxy.sol": proxyCompiler,
+            "contracts/proxies/SafeProxyFactory.sol": proxyCompiler,
+        },
     },
     networks: {
         hardhat: {
